@@ -1,0 +1,75 @@
+import { test, expect } from '@playwright/test';
+
+test('account, persistent chat, background research, report and mobile navigation', async ({page, browser}, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.goto('/');
+  const email = `browser-${Date.now()}@example.com`;
+  // Isolated fixture API explicitly enables registration; production UI never does.
+  const setup = await page.request.post('/api/auth/register', {headers:{Origin:new URL(page.url()).origin,'X-Friday-Request':'1'},data:{email,password:'browser-test-password'}});
+  expect(setup.status()).toBe(201);
+  await page.reload();
+  await expect(page.getByRole('heading',{name:'At your service.'})).toBeVisible();
+  await page.getByRole('button',{name:/01 \/ COMMUNICATION/}).click();
+  await expect(page.getByRole('heading',{name:'What’s on your mind?'})).toBeVisible();
+  await page.keyboard.press('Control+k');
+  await expect(page.getByRole('dialog',{name:'Quick commands'})).toBeVisible();
+  await page.getByLabel('Search commands').fill('Appearance');
+  await page.keyboard.press('Enter');
+  await page.getByRole('button',{name:'Nebula'}).click();
+  await expect(page.locator('html')).toHaveAttribute('data-accent','violet');
+  await page.getByRole('switch',{name:'Decorative motion'}).click();
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-accent','violet');
+  await expect(page.locator('html')).toHaveAttribute('data-motion','off');
+  await page.getByRole('button',{name:/01 \/ COMMUNICATION/}).click();
+  await page.getByRole('button',{name:'Pause visual animation'}).click();
+  await expect(page.getByRole('button',{name:'Resume visual animation'})).toBeVisible();
+  await page.getByRole('button',{name:'Focus mode',exact:true}).click();
+  await expect(page.locator('.sidebar')).toBeHidden();
+  await page.getByRole('button',{name:'Show sidebar'}).click();
+  await page.getByLabel('Message FRIDAY').fill('Remember this test conversation.');
+  await page.getByRole('button',{name:'Send ↑'}).click();
+  await expect(page.locator('.message.assistant')).toContainText('TEST FIXTURE RESPONSE');
+  await page.locator('.message.assistant').getByRole('button',{name:'Copy',exact:true}).click();
+  await expect(page.locator('.message.assistant').getByRole('button',{name:'Copied ✓'})).toBeVisible();
+  await page.reload();
+  await page.getByRole('button',{name:'Remember this test conversation.',exact:true}).click();
+  await expect(page.locator('.message.assistant')).toContainText('TEST FIXTURE RESPONSE');
+  await page.getByRole('button',{name:'Research projects'}).click();
+  await page.getByLabel('What would you like to understand?').fill('Research durable tasks using the fixture source.');
+  await page.getByRole('button',{name:'Start research'}).click();
+  await expect(page.locator('.project-card')).toBeVisible();
+  const state = await page.context().storageState();
+  await page.close();
+  // No frontend remains attached while the independent worker finishes.
+  const newContext = await browser.newContext({storageState: state});
+  const reopened = await newContext.newPage();
+  await reopened.goto('/');
+  await reopened.getByRole('button',{name:'Research projects'}).click();
+  await reopened.getByRole('button',{name:'Failed',exact:true}).click();
+  await expect(reopened.getByText('No projects in this view.')).toBeVisible();
+  await reopened.getByRole('button',{name:'All',exact:true}).click();
+  await reopened.locator('.project-card').first().click();
+  await expect(reopened.locator('.report')).toContainText('https://example.org/research');
+  await expect(reopened.locator('.project-detail .badge')).toHaveText('succeeded');
+  await expect(reopened.getByRole('link',{name:'Download .md'})).toBeVisible();
+  await reopened.screenshot({path:testInfo.outputPath('friday-research-desktop.png'),fullPage:true});
+  await reopened.setViewportSize({width:390,height:844});
+  await reopened.getByRole('button',{name:'Toggle navigation'}).click();
+  await reopened.getByRole('button',{name:'Capabilities'}).click();
+  await expect(reopened.getByRole('heading',{name:'A growing set of abilities.'})).toBeVisible();
+  const overflows = await reopened.evaluate(() => document.documentElement.scrollWidth > innerWidth);
+  expect(overflows).toBe(false);
+  await reopened.screenshot({path:testInfo.outputPath('friday-mobile.png'),fullPage:true});
+  await reopened.getByRole('button',{name:'Toggle navigation'}).click();
+  await reopened.getByRole('button',{name:'Command center'}).click();
+  await reopened.emulateMedia({reducedMotion:'reduce'});
+  await expect(reopened.getByRole('heading',{name:'At your service.'})).toBeVisible();
+  await expect(reopened.locator('.reactor-ring.outer')).toHaveCSS('animation-name','none');
+  await reopened.screenshot({path:testInfo.outputPath('command-mobile.png'),animations:'disabled'});
+  expect(errors).toEqual([]);
+  await newContext.close();
+});
+
+

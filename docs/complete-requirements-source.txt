@@ -1,0 +1,585 @@
+CONTINUATION: COMPLETE FRIDAY REQUIREMENTS
+
+You already received “FINAL PRODUCT DIRECTION.”
+Keep that prompt in force. This message adds requirements from our full
+planning discussion.
+
+Inspect the current repository and progress first. Extend existing work;
+do not restart, replace working architecture, or overwrite unrelated changes.
+
+Read this entire message. Do not silently omit requirements. Turn every
+requirement into a tracked item with a phase, status, and acceptance check.
+“Planned” is acceptable for later features; pretending they work is not.
+
+1. PRODUCT IDENTITY
+
+FRIDAY is my complete, independent AI product.
+
+Use ChatGPT/Astra as a reference for capability categories and OpenAI Dots
+as a reference for persistent autonomous workers.
+
+FRIDAY has its own branding, interface, backend, accounts, memory, tools,
+execution system, and integrations. Users must not need to open ChatGPT.
+
+Do not imply affiliation, ownership of proprietary models, access to private
+source code, or equivalent intelligence without evaluation.
+
+2. TWO DEVELOPMENT TRACKS
+
+Track A: FRIDAY application and autonomous execution platform.
+Track B: FRIDAY model training and evaluation pipeline.
+
+Build the application first while preparing a small training experiment.
+
+Existing AI APIs are acceptable as replaceable infrastructure during development
+and production. They are not the same as training FRIDAY’s own model.
+
+Keep provider-based inference and a future FRIDAY model checkpoint behind
+a common, capability-aware interface. Label the active model accurately.
+
+3. DEVICES AND OPERATING BEHAVIOR
+
+- Start with a Windows-laptop-friendly web interface.
+- Add Android and iOS applications later.
+- Autonomous tasks run on the server, not the phone.
+- Cloud tasks continue when the laptop is off or the app is closed.
+- Tasks requiring files/apps only on an offline laptop must wait.
+- Begin with cloud hosting and support migration to my own server.
+- Build software before integrating physical hardware.
+- Heavy model training and inference infrastructure must be considered
+  separately from ordinary application hosting.
+
+4. FIRST WORKING MILESTONE
+
+Implement this complete workflow before expanding scope:
+
+- Sign in.
+- Chat with one real AI provider.
+- Save and reopen the conversation.
+- Submit a research project.
+- Execute it through a separate durable worker.
+- Retrieve real sources.
+- Produce and save a report with citations.
+- Close/reopen the frontend without interrupting execution.
+- Inspect status, errors, sources, and results.
+
+A mock response or hardcoded report does not satisfy this milestone.
+
+Without credentials, implement the surrounding functionality and use explicit
+test doubles for automated tests. Mark live verification as blocked.
+
+5. ARCHITECTURE
+
+Preserve the existing architecture if suitable.
+
+Preferred starting components:
+- React + TypeScript frontend.
+- Python + FastAPI backend.
+- PostgreSQL.
+- Celery + Redis.
+- Playwright in an isolated browser worker.
+- Docker Compose.
+- Future React Native/Expo mobile clients, subject to native requirements.
+
+Verify current documentation and dependency compatibility.
+Pin dependencies and maintain relevant lockfiles.
+
+PostgreSQL must be the authoritative source of persistent project state.
+Do not rely solely on queue messages, process memory, HTTP requests, or
+in-process callbacks for durable execution.
+
+6. INTERFACE
+
+Provide these screens as their functionality is implemented:
+
+- Chat.
+- Projects.
+- Approvals.
+- Memory.
+- Bots.
+- Connected services.
+- Settings.
+- Devices, later.
+
+Use clear typography, responsive layouts, keyboard accessibility, and useful
+loading, empty, error, and disconnected states.
+
+Show real task events, not fabricated progress percentages.
+Label unavailable and future features explicitly.
+
+7. CHAT AND PERSONALITY
+
+- Streaming where supported.
+- Persisted conversation history.
+- Bounded context handling.
+- Clear errors, retries, and stop controls.
+- Configurable model/provider.
+- No silent model substitution.
+- Warm, natural, consistent personality.
+- Transparent AI identity.
+- No invented memories, personal experiences, or completed actions.
+- Support companionship without encouraging emotional dependence.
+
+8. VOICE
+
+After the first milestone:
+- Push-to-talk.
+- Speech recognition.
+- Spoken replies.
+- Playback stop/interruption handling.
+- Listening, processing, and speaking indicators.
+- Microphone permission handling.
+- Text fallback.
+- No continuous recording by default.
+- No raw audio retention by default.
+
+Keep speech services configurable.
+Do not promise wake words, continuous listening, or locked-screen operation
+until verified on the target platform.
+
+9. MEMORY
+
+Separate:
+- Conversation history.
+- User-approved long-term memories.
+- Project context.
+- Temporary execution state.
+
+Allow inspection, editing, deletion, and export.
+Record origin and update time.
+Ask before retaining sensitive personal information.
+Do not store credentials/payment data in conversational memory.
+
+Start with straightforward database retrieval.
+Add embeddings only for a demonstrated requirement.
+
+Deletion must remove live retrieval/index entries.
+Document backup retention separately.
+
+10. DURABLE AUTONOMOUS EXECUTION
+
+Implement:
+- Persisted plans, steps, outputs, and checkpoints.
+- Atomic state transitions.
+- Worker ownership/leases.
+- Bounded retries and backoff.
+- Timeouts and execution limits.
+- Cancellation.
+- Restart recovery.
+- Resource and usage budgets.
+- Clear failure and uncertain-outcome states.
+
+Suggested states:
+queued, running, waiting_for_approval, succeeded, failed, cancelled.
+Add paused only with actual pause/resume semantics.
+
+Use idempotency where supported.
+Do not claim exactly-once external execution.
+Reconcile uncertain external results before retrying consequential actions.
+
+Waiting for approval must release worker resources.
+Resume from persisted state after authorization.
+
+Show action summaries and evidence, not hidden model reasoning.
+
+11. RESEARCH
+
+- Plan a bounded search.
+- Use a real supported search service.
+- Retrieve and inspect sources.
+- Store source URLs, metadata, and retrieval times.
+- Distinguish snippets from full-source verification.
+- Compare evidence and describe uncertainty.
+- Generate a cited report.
+- Save the result as an accessible artifact.
+
+Never invent citations or quotations.
+
+Limit downloads, timeouts, redirects, and retrieval counts.
+Validate URLs and resolved addresses, including redirects.
+Block private/internal networks, loopback, link-local addresses, and cloud
+metadata endpoints from untrusted retrieval requests.
+
+Treat retrieved content as untrusted data.
+Sanitize content before displaying it.
+
+12. CLOUD COMPUTER AND LAPTOP CONTROL
+
+Begin with an isolated cloud browser.
+Add a desktop workspace only when needed.
+
+Use a controlled loop:
+observe → propose action → authorize → execute → inspect → verify.
+
+Allow users to inspect activity and cancel execution.
+Pause for CAPTCHA and authentication requiring user intervention.
+Never bypass access controls.
+
+Local laptop control requires:
+- A separately installed companion service.
+- Authentication and scoped permissions.
+- An awake, connected laptop.
+
+Keep local and cloud execution clearly distinguished.
+
+Docker packaging alone is not sufficient isolation for arbitrary hostile code.
+Use suitable hardened isolation before offering unrestricted code execution.
+
+13. APPROVALS
+
+Backend controls must enforce approvals independently of model instructions.
+
+Require approval before:
+- Sending messages/emails.
+- Posting publicly.
+- Purchases/payments.
+- Confirming bookings.
+- Starting paid subscriptions.
+- Destructive changes to important data.
+- Other configured consequential actions.
+
+Bind approval to user, action, exact material parameters, expiry, and use count.
+Reject altered, expired, replayed, or cross-user approvals.
+Material changes require fresh approval.
+
+Do not add payment execution to the first milestone.
+Virtual cards are a later provider-dependent integration.
+
+14. PROACTIVE WORK
+
+Only add schedules/event triggers after durable execution is reliable.
+
+Every proactive workflow needs:
+- A user-enabled goal.
+- Explicit data access.
+- Trigger/schedule.
+- Budget and runtime limit.
+- Stop condition.
+- Activity history.
+
+Default unsolicited discovery to read-only access.
+Do not treat general goals as unlimited permission to message, modify, or spend.
+
+15. SPECIALIST BOTS
+
+FRIDAY is the primary assistant.
+Specialist bots are roles/configurations and do not each need a separate model.
+
+Each bot needs:
+- Name and purpose.
+- Instructions.
+- Validated input/output schema.
+- Allowed tools.
+- Memory scope.
+- Connected accounts.
+- Approval policy.
+- Budget.
+- Concurrency limits.
+- Optional schedules.
+- Completion checks.
+
+Initial specialists:
+- Research.
+- Planning.
+- Writing.
+
+Later specialists:
+- Coding/debugging.
+- Marketing.
+- Sales/lead research.
+- Deals/proposals.
+- Operations/onboarding.
+- Customer support.
+- Back-office processing.
+- Creative/3D work.
+- Personal learning/companionship.
+
+Provide “Create a bot” when its runtime is functional.
+Use bounded delegation depth and concurrency.
+Prevent recursive loops and duplicate work.
+All specialists share centrally enforced authorization.
+
+Do not create 137 always-running agents merely to imitate marketing material.
+
+16. ADVANCED CAPABILITIES
+
+Engineering:
+Isolated repository workspaces, multi-file edits, tests, reviewable diffs,
+and build verification.
+
+Mathematics:
+Calculation/symbolic tools and reproducible results.
+
+Documents:
+File analysis and document/spreadsheet/presentation creation with validation.
+
+Creative:
+Separate image-generation tools and later Blender integration with rendered
+previews. Add game workflows iteratively.
+
+Unreal Engine, Figma, and other applications require real integrations.
+Do not mark them supported because a model can discuss them.
+
+17. FRIDAY MODEL TRAINING
+
+My longer-term goal is a trainable FRIDAY model improved using examples from
+multiple teacher models, potentially:
+- OpenAI Astra.
+- Anthropic Claude.
+- Google Gemini.
+- xAI Grok.
+
+This is teacher-assisted dataset generation and distillation, not merely
+calling four APIs during inference.
+
+Do not assume teacher output can legally or contractually be used for training.
+
+Before collection:
+- Review current official terms and relevant agreements.
+- Record permission/restriction provenance.
+- Flag uncertainty for review.
+- Block training-data collection until permission is established.
+- Do not treat API access or silence as permission.
+
+If a teacher is disallowed/unavailable, use suitably licensed datasets,
+human-authored examples, or permissible open-model teachers.
+
+18. FIRST TRAINING EXPERIMENT
+
+- Select a trainable base model with a suitable license.
+- Estimate hardware and cost before running.
+- Evaluate the unchanged baseline.
+- Target task planning and tool selection first.
+- Prepare approximately 500–1,000 verified pilot examples.
+- Treat that count as an experiment, not a guarantee of adequacy.
+- Split training, validation, and held-out test data.
+- Separate related task families and deduplicate to reduce leakage.
+- Use an appropriate efficient fine-tuning method.
+- Compare with the baseline on unseen tasks.
+- Check regressions and permission-following behavior.
+- Promote only after measured improvement.
+- Preserve rollback.
+
+Do not claim the combined intelligence of all teachers or frontier equivalence.
+
+19. TEACHER DATA QUALITY
+
+Permitted teachers may generate candidate examples in parallel.
+
+Apply:
+- Rate limits.
+- Budget caps.
+- Provenance tracking.
+- Secret and personal-data removal.
+- License checks.
+- Executable code tests.
+- Source verification.
+- Tool-schema and authorization validation.
+- Human review where appropriate.
+
+Teacher agreement is not proof of correctness.
+Request outputs, concise explanations, and observable action traces.
+Do not seek private hidden chain-of-thought.
+
+Each dataset example should record:
+- ID.
+- Task family.
+- Input.
+- Target output/action sequence.
+- Teacher/provider/model where applicable.
+- Generation date.
+- Permission/license provenance.
+- Verification method/result.
+- Dataset version and split.
+
+20. TRAINING TOOLING
+
+Create:
+- Dataset schema.
+- Validator.
+- Import/export tools.
+- Redaction/deduplication checks.
+- Split generation.
+- Training configuration.
+- Evaluation runner.
+- Checkpoint metadata.
+- Model card.
+- Promotion/rollback procedure.
+
+Do not launch paid teacher collection or GPU training without approval of
+a specific estimate.
+
+Record base-model attribution and license obligations.
+Fine-tuning does not mean the base model was trained from scratch.
+
+21. FEEDBACK AND PRIVACY
+
+Keep operational memory separate from training data.
+Do not train automatically on every conversation.
+Personal-data training must be opt-in and traceable.
+
+Support excluding/removing records from future training datasets.
+Do not claim record deletion erases influence from existing model weights.
+
+22. OPTIONAL MULTI-MODEL INFERENCE
+
+Keep separate from training.
+
+A later Council mode may ask selected models for proposals/reviews in parallel.
+Use one authorized executor for external actions.
+Handle partial failures and per-provider costs.
+Verify outputs independently.
+Never let model consensus override approvals.
+
+This feature must not distract from the first milestone.
+
+23. FUTURE PHYSICAL DEVICES
+
+After software:
+- Glasses for voice, with camera/display later.
+- Watch with an animated talking FRIDAY character.
+- Desk companion if useful.
+- Robot later.
+
+Design for:
+- Short-lived pairing challenges.
+- Per-device authentication.
+- Scoped permissions.
+- Revocation.
+- Explicit memory access.
+- Conversation handoff.
+
+Do not buy hardware or build fake pairing demonstrations.
+
+Watch animations may show sleeping, listening, thinking, speaking, and task
+completion. Implement animation first in the app when appropriate.
+
+Robot movement requires a separate constrained controller and physical safety
+mechanisms. No unrestricted model-to-motor execution.
+
+24. SECURITY
+
+- Maintained authentication.
+- Resource ownership checks.
+- Secrets server-side.
+- No secrets in logs, prompts, frontend bundles, or source control.
+- .env.example contains placeholders only.
+- Session protection.
+- Restricted CORS.
+- Safe rendering.
+- Upload/storage/rate/execution limits.
+- Redacted logs.
+- User/workspace/browser isolation.
+- No unauthenticated shell endpoints.
+- External content treated as untrusted instructions.
+
+AI-based review is supplementary, never a replacement for enforced controls.
+
+25. STORAGE AND USAGE
+
+Use migrations and indexes appropriate to actual features.
+
+Entities over time:
+users, conversations, messages, memories, projects, steps, events, sources,
+artifacts, approvals, bots, connections, usage, devices, datasets, evaluations,
+and checkpoints.
+
+Persist artifacts with access controls.
+Provide data export and backup/restore procedures.
+
+Track provider-reported usage.
+Label estimated costs.
+Document limitations of spending caps.
+
+26. DEPLOYMENT
+
+Provide:
+- Dockerfiles.
+- Compose configuration.
+- Health checks.
+- Persistent volumes.
+- Migration commands.
+- Backup and restore instructions.
+- HTTPS deployment guidance.
+- Cloud deployment checklist.
+- Migration guide to my own server.
+
+Keep vendor dependence limited and provide export paths.
+Do not deploy publicly or incur costs without explicit authorization.
+
+27. ACCEPTANCE TESTS
+
+Verify:
+- Conversations survive restart.
+- Cross-user resource access is denied.
+- Task submission returns promptly.
+- Closing the frontend does not stop execution.
+- Worker restart recovers saved tasks.
+- Duplicate delivery does not duplicate completed operations.
+- Retries are bounded.
+- Cancellation prevents further steps.
+- Citations correspond to retrieved evidence.
+- Unsafe/internal URL access is blocked.
+- Missing credentials and provider failures are handled honestly.
+- Approval alteration/replay is rejected when approvals exist.
+- Dataset validation and split separation work.
+- Relevant frontend/backend checks pass.
+- Documented local startup works.
+
+Distinguish mocked tests from real-provider checks.
+
+28. DOCUMENTATION AND REQUIREMENT TRACKING
+
+Maintain:
+- README.md.
+- .env.example.
+- docs/architecture.md.
+- docs/roadmap.md.
+- docs/capabilities.md.
+- docs/security.md.
+- docs/deployment.md.
+- docs/training-plan.md.
+- docs/data-provenance.md.
+- docs/requirements-traceability.md.
+
+In the traceability file, assign requirement IDs covering every section above.
+Record:
+- Requirement.
+- Phase.
+- Status.
+- Implementing files/components.
+- Acceptance check.
+- Test evidence or reason blocked.
+- Known limitations.
+
+Use statuses such as planned, in progress, implemented, verified, and blocked.
+Do not mark a feature verified solely because code exists.
+
+29. WORKING RULES
+
+- Preserve the earlier FINAL PRODUCT DIRECTION.
+- Inspect existing work before editing.
+- Make reversible implementation decisions independently.
+- Ask only for genuinely blocking choices or specific paid commitments.
+- Never request secret keys in chat.
+- Continue useful work while credentials are unavailable.
+- Avoid broad scaffolding at the expense of one working workflow.
+- Do not silently drop requirements; defer them explicitly.
+- Do not claim capabilities, deployments, training runs, or tests succeeded
+  without evidence.
+
+START FROM THE CURRENT REPOSITORY
+
+First reconcile this specification with existing code and record gaps.
+Then continue the first milestone:
+persistent chat + durable research execution + real sources + project dashboard.
+
+After that, prepare the training scaffold without restricted data collection
+or paid training.
+
+At each completed milestone, report:
+1. What changed.
+2. What works.
+3. What was tested.
+4. What is blocked or still planned.
+5. The next exact command or configuration step.
