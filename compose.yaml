@@ -38,6 +38,7 @@ services:
       db: {condition: service_healthy}
   api:
     <<: *app
+    command: ["uvicorn", "friday.api:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--proxy-headers", "--forwarded-allow-ips=*"]
     ports: ["127.0.0.1:8000:8000"]
     depends_on:
       migrate: {condition: service_completed_successfully}
@@ -46,6 +47,16 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+  caddy:
+    image: caddy:2.11.6-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api: {condition: service_healthy}
   worker:
     <<: *app
     command: ["celery", "-A", "friday.tasks", "worker", "--loglevel=WARNING", "--concurrency=2"]
@@ -61,3 +72,5 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,4 @@
+friday.srv2033118.hstgr.cloud {
+    encode zstd gzip
+    reverse_proxy api:8000
+}

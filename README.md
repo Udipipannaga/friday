@@ -42,7 +42,7 @@ Without keys, accounts, sign-in, saved conversation containers, settings, and ca
 
 ## Verification and limits
 
-See [docs/verification.md](docs/verification.md) for test boundaries and [docs/deployment.md](docs/deployment.md) for deployment status. Fixtures test model/search contracts and orchestration; they are not live provider validation. A real public HTTPS page was retrieved successfully. No model or search credentials were available. Docker is absent on the Windows development host; a private VPS deployment was verified on October 4, 2026, including PostgreSQL conversation persistence across service restarts. Public HTTPS browser access remains unconfigured.
+See [docs/verification.md](docs/verification.md) for test boundaries and [docs/deployment.md](docs/deployment.md) for deployment status. Fixtures test model/search contracts and orchestration; they are not live provider validation. A real public HTTPS page was retrieved successfully. No model or search credentials were available. Docker is absent on the Windows development host; a VPS deployment was verified on October 4, 2026, including PostgreSQL conversation persistence across service restarts. Its HTTPS sign-in page became reachable at `https://friday.srv2033118.hstgr.cloud` on October 5, 2026; authenticated browser use on that origin has not yet been retested.
 
 Voice, long-term memory, computer use, coding sandboxes, file analysis, additional artifact formats, business integrations, approvals for consequential actions, native mobile apps and devices remain planned. See [docs/roadmap.md](docs/roadmap.md). This milestone has no messaging, purchasing, booking, shell or computer-control tools.
 
@@ -78,7 +78,7 @@ Browser integration tests use an explicit, isolated fixture worker; see `docs/ve
 
 ## Portable deployment
 
-The retained deployment stack is React/TypeScript + FastAPI + PostgreSQL + Celery/Redis. SQLite and the polling worker are a Windows development convenience only. See [docs/deployment.md](docs/deployment.md) for Docker Compose, backups, cloud preparation and migration. No infrastructure was purchased or publicly deployed.
+The retained deployment stack is React/TypeScript + FastAPI + PostgreSQL + Celery/Redis. SQLite and the polling worker are a Windows development convenience only. See [docs/deployment.md](docs/deployment.md) for Docker Compose, backups, cloud preparation and migration. The owner-provided Hostinger VPS currently serves the sign-in page publicly over HTTPS.
 
 ## Troubleshooting
 
