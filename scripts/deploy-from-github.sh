@@ -35,6 +35,8 @@ cd "$release_dir"
 docker compose config --quiet
 docker compose build
 docker compose up -d --no-build
-curl --fail --silent --show-error --retry 10 --retry-delay 2 --resolve friday.srv2033118.hstgr.cloud:443:127.0.0.1 https://friday.srv2033118.hstgr.cloud/api/health
+curl --fail --silent --show-error --retry 15 --retry-all-errors --retry-delay 2 \
+  --resolve friday.srv2033118.hstgr.cloud:443:127.0.0.1 \
+  https://friday.srv2033118.hstgr.cloud/api/health
 echo
 echo "FRIDAY deployed from GitHub commit ${actual_commit}"
