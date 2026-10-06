@@ -180,7 +180,14 @@ class AccessEmail(BaseModel):
 def request_access(body: AccessEmail, request: Request, s: DB):
     throttle(s, 'access:' + (request.client.host if request.client else 'unknown'))
     email = body.email.strip().lower()
-    if not s.scalar(select(db.AccessRequest).where(db.AccessRequest.email == email)):
+    existing = s.scalar(select(db.AccessRequest).where(db.AccessRequest.email == email))
+    if existing and existing.status in ('denied', 'revoked'):
+        existing.status = 'pending'
+        existing.digest = None
+        existing.expires = 0
+        existing.created = time.time()
+        s.commit()
+    elif not existing:
         s.add(db.AccessRequest(email=email))
         try:
             s.commit()
@@ -268,7 +275,7 @@ def status(user: User):
         'provider': settings.provider, 'model': settings.model or 'Not configured',
         'missing': [name for name, present in [('FRIDAY_API_KEY', settings.api_key), ('FRIDAY_MODEL', settings.model), ('FRIDAY_SEARCH_KEY', settings.search_key)] if not present],
         'capabilities': {'persistent_chat': 'implemented', 'research': 'implemented; requires configured services',
-            'voice': 'planned', 'memory': 'planned', 'computer_use': 'planned', 'coding_sandbox': 'planned',
+            'voice': 'browser TTS available; dictation depends on browser speech recognition', 'memory': 'planned', 'computer_use': 'planned', 'coding_sandbox': 'planned',
             'business_integrations': 'planned', 'mobile_apps': 'planned', 'device_pairing': 'planned'}}
 
 
