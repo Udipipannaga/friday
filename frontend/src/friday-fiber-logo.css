@@ -1,0 +1,10 @@
+.friday-fiber-logo{position:relative;display:inline-block;flex:none;vertical-align:middle;isolation:isolate;overflow:visible;pointer-events:none}
+.friday-fiber-logo::before{content:"";position:absolute;inset:13%;border-radius:50%;background:radial-gradient(circle,#44c5f32b 2%,#239fca13 44%,transparent 70%);filter:blur(7px);transform:scale(1.25)}
+.friday-fiber-canvas{position:relative;z-index:1;display:block;width:100%;height:100%}
+.friday-fiber-logo-fallback{position:absolute;inset:12%;display:block;border:2px solid #70d5f0;border-radius:50%;background:radial-gradient(circle,#7feaff 0 13%,#2287ad 14% 23%,#102736 24% 48%,transparent 49%);box-shadow:0 0 14px #32c8fa7a,inset 0 0 8px #3cc7f874;transform:rotate(-22deg)}
+.friday-fiber-logo-fallback::before{content:"";position:absolute;inset:13%;border:1px solid #edb36e;border-radius:50%;transform:rotateX(63deg) rotate(-37deg);box-shadow:0 0 8px #d59656a0}
+.friday-fiber-logo-fallback span{position:absolute;inset:38%;background:#c6faff;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);box-shadow:0 0 10px #7bdcff}
+.brand-fiber-logo{margin-left:-4px;margin-right:-2px}
+.gate-fiber-logo{display:block;margin:28px auto}
+.reactor-fiber-logo{display:block;margin:0 auto -8px}
+@media(max-width:650px){.gate-fiber-logo{margin:12px auto 4px;transform:scale(.72)}}

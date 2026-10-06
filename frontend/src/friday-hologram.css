@@ -1,0 +1,181 @@
+.friday-hologram {
+  --fh-cyan: #72e9ff;
+  --fh-voice: #f76d64;
+  --fh-state: var(--fh-cyan);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: min(100%, 590px);
+  aspect-ratio: 640 / 660;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid #81ddff1f;
+  border-radius: 26px;
+  background:
+    linear-gradient(120deg, #84e8ff10 0 1px, transparent 1px 100%),
+    radial-gradient(ellipse at 52% 38%, #1648798c, transparent 53%),
+    linear-gradient(150deg, #091625, #050b15 68%, #091623);
+  box-shadow: inset 0 0 75px #4abfff0b, 0 30px 80px #0008;
+  color: var(--fh-state);
+}
+
+.friday-hologram::before,
+.friday-hologram::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.friday-hologram::before {
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent 0 47px, #93dcff0a 48px 49px),
+    repeating-linear-gradient(90deg, transparent 0 47px, #93dcff0a 48px 49px);
+  mask-image: radial-gradient(ellipse at center, #000 20%, transparent 80%);
+}
+
+.friday-hologram::after {
+  inset: 16px;
+  border: 1px solid #96e7ff10;
+  border-radius: 18px;
+  background:
+    linear-gradient(90deg, #7eeaff 0 21px, transparent 21px) left top / 50px 1px no-repeat,
+    linear-gradient(#7eeaff 0 21px, transparent 21px) left top / 1px 50px no-repeat,
+    linear-gradient(270deg, #7eeaff 0 21px, transparent 21px) right bottom / 50px 1px no-repeat,
+    linear-gradient(0deg, #7eeaff 0 21px, transparent 21px) right bottom / 1px 50px no-repeat;
+  opacity: .5;
+}
+
+.fh-atmosphere {
+  position: absolute;
+  inset: 6% 4% 12%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #6ad9ff12, transparent 68%);
+  pointer-events: none;
+}
+
+.fh-scene {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 11px #4ec8ff3d);
+}
+
+.fh-avatar,
+.fh-head,
+.fh-field,
+.fh-open-hand {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+}
+
+.fh-trace {
+  stroke: #91eaff;
+  stroke-width: 2;
+  stroke-opacity: .82;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fh-pose {
+  opacity: 0;
+  transition: opacity .36s ease;
+}
+
+.friday-hologram[data-state='idle'] .fh-pose--idle,
+.friday-hologram[data-state='listening'] .fh-pose--listening,
+.friday-hologram[data-state='thinking'] .fh-pose--thinking,
+.friday-hologram[data-state='speaking'] .fh-pose--speaking {
+  opacity: 1;
+}
+
+.friday-hologram[data-state='speaking'] { --fh-state: var(--fh-voice); }
+.friday-hologram[data-state='speaking'] .fh-core-ring,
+.friday-hologram[data-state='speaking'] .fh-core-mark,
+.friday-hologram[data-state='speaking'] .fh-core-light {
+  filter: drop-shadow(0 0 6px #ff675d);
+}
+
+.fh-status {
+  position: absolute;
+  z-index: 2;
+  right: 9%;
+  bottom: 7%;
+  left: 9%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #a9e7ff;
+  font: 600 11px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 13px #60cfff8c;
+}
+
+.fh-status strong {
+  margin-left: auto;
+  color: var(--fh-state);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .13em;
+  text-align: right;
+}
+
+.fh-status-line {
+  flex: 0 0 16px;
+  height: 2px;
+  background: var(--fh-state);
+  box-shadow: 0 0 10px var(--fh-state);
+}
+
+.friday-hologram[data-motion='on'] .fh-avatar { animation: fh-breathe 7s ease-in-out infinite; }
+.friday-hologram[data-motion='on'] .fh-core-halo { animation: fh-core-pulse 3.8s ease-in-out infinite; }
+.friday-hologram[data-motion='on'] .fh-projection { animation: fh-projection 5s ease-in-out infinite; }
+.friday-hologram[data-motion='on'][data-state='listening'] .fh-ear-signal { animation: fh-listen 1.65s ease-out infinite; }
+.friday-hologram[data-motion='on'][data-state='listening'] .fh-head { animation: fh-listen-head 3s ease-in-out infinite; }
+.friday-hologram[data-motion='on'][data-state='thinking'] .fh-field { animation: fh-think 11s linear infinite; }
+.friday-hologram[data-motion='on'][data-state='thinking'] .fh-head { animation: fh-think-head 4s ease-in-out infinite; }
+.friday-hologram[data-motion='on'][data-state='speaking'] .fh-mouth-motion { animation: fh-speak 500ms ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+.friday-hologram[data-motion='on'][data-state='speaking'] .fh-hand-signal { animation: fh-listen 1.1s ease-out infinite; }
+.friday-hologram[data-motion='on'][data-state='speaking'] .fh-open-hand { animation: fh-speak-hand 2.1s ease-in-out infinite; }
+
+@keyframes fh-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes fh-core-pulse { 0%, 100% { opacity: .31; } 50% { opacity: .78; } }
+@keyframes fh-projection { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
+@keyframes fh-listen { 0% { opacity: .7; transform: scale(.8); transform-origin: center; } 100% { opacity: 0; transform: scale(2); transform-origin: center; } }
+@keyframes fh-listen-head { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(2.2deg); } }
+@keyframes fh-think { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes fh-think-head { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-3deg); } }
+@keyframes fh-speak { from { transform: scaleY(.65); opacity: .5; } to { transform: scaleY(1.65); opacity: 1; } }
+@keyframes fh-speak-hand { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+.friday-hologram--compact {
+  width: min(100%, 300px);
+  border-radius: 18px;
+}
+
+.friday-hologram--compact::after { inset: 9px; border-radius: 12px; }
+.friday-hologram--compact .fh-status { bottom: 6%; font-size: 8px; letter-spacing: .12em; }
+.friday-hologram--compact .fh-status strong { font-size: 8px; }
+
+@media (max-width: 580px) {
+  .friday-hologram { border-radius: 18px; }
+  .friday-hologram::after { inset: 10px; border-radius: 12px; }
+  .fh-status { font-size: 9px; letter-spacing: .12em; }
+  .fh-status strong { font-size: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .friday-hologram *, .friday-hologram *::before, .friday-hologram *::after { animation: none !important; transition: none !important; }
+}
+
+.friday-hologram[data-motion='off'] *,
+.friday-hologram[data-motion='off'] *::before,
+.friday-hologram[data-motion='off'] *::after {
+  animation: none !important;
+  transition: none !important;
+}
