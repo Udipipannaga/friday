@@ -30,6 +30,15 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+  ollama:
+    image: ollama/ollama@sha256:1bef639749741b375e9a1eb2c1346fb57ce52f5432de1f74846e44ccc18e1687
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+    ports: ["127.0.0.1:11434:11434"]
+    volumes: ["ollama_data:/root/.ollama"]
+    restart: unless-stopped
   migrate:
     <<: *app
     restart: "no"
@@ -74,3 +83,4 @@ volumes:
   redis_data:
   caddy_data:
   caddy_config:
+  ollama_data:

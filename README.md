@@ -28,13 +28,15 @@ FRIDAY_ORIGIN=http://localhost:8000
 
 Restart the API and worker after changing configuration. There is deliberately no default model or silent fallback. Model access, pricing, capabilities and account eligibility must be checked against your provider account. API use can incur charges; daily request counts and output limits are not a provider-level spending cap.
 
+For the private VPS, FRIDAY can instead use a locally served third-party Ollama model. Set `FRIDAY_PROVIDER=ollama`, `FRIDAY_MODEL` to a model already pulled into Ollama, and `FRIDAY_OLLAMA_URL=http://ollama:11434`. The Compose service binds its host port to `127.0.0.1`; the API and worker call it on the private Compose network. No OpenAI API key is required for this provider. This is a replaceable model adapter, not a FRIDAY-trained model.
+
 Without keys, accounts, sign-in, saved conversation containers, settings, and capability status work. AI submissions return a setup error; **no mock model is enabled in the application**. Existing messages/projects can still be reopened if present.
 
 ## What is implemented
 
 - Argon2 password hashing; hashed, expiring server-side sessions; strict cookies; same-origin request checks; persisted login throttling.
 - Ownership checks for conversations, jobs, sources and artifacts.
-- Stored conversation history and a configurable OpenAI Responses adapter behind a provider protocol. Partial model output is saved and polled by the UI every second; it is not a direct browser-to-provider stream.
+- Stored conversation history and configurable OpenAI Responses and private Ollama adapters behind a provider protocol. Partial model output is saved and polled by the UI every second; it is not a direct browser-to-provider stream.
 - Database-backed chat and research jobs. A standalone local worker or Celery worker executes them independently of the frontend.
 - Research: deterministic bounded plan, Brave Search, up to five public HTTPS pages, text extraction, evidence metadata, synthesis, citation/evidence validation, saved Markdown report.
 - Persisted activity, quotas, execution leases, cancellation, bounded search retries, recovery from completed checkpoints.
@@ -42,7 +44,7 @@ Without keys, accounts, sign-in, saved conversation containers, settings, and ca
 
 ## Verification and limits
 
-See [docs/verification.md](docs/verification.md) for test boundaries and [docs/deployment.md](docs/deployment.md) for deployment status. Fixtures test model/search contracts and orchestration; they are not live provider validation. A real public HTTPS page was retrieved successfully. No model or search credentials were available. Docker is absent on the Windows development host; a VPS deployment was verified on October 4, 2026, including PostgreSQL conversation persistence across service restarts. Its HTTPS sign-in page became reachable at `https://friday.srv2033118.hstgr.cloud` on October 5, 2026; authenticated browser use on that origin has not yet been retested.
+See [docs/verification.md](docs/verification.md) for test boundaries and [docs/deployment.md](docs/deployment.md) for deployment status. Fixtures test model/search contracts and orchestration; they are not live provider validation. On October 7, 2026, the hosted owner account received a real chat reply through the private Ollama adapter using Qwen2.5 1.5B on the existing CPU VPS. Research remains unconfigured because `FRIDAY_SEARCH_KEY` is absent. The model has no accuracy score; the 140-question study pack still requires raw responses and human review. Docker is absent on the Windows development host.
 
 Voice, long-term memory, computer use, coding sandboxes, file analysis, additional artifact formats, business integrations, approvals for consequential actions, native mobile apps and devices remain planned. See [docs/roadmap.md](docs/roadmap.md). This milestone has no messaging, purchasing, booking, shell or computer-control tools.
 
@@ -82,7 +84,7 @@ The retained deployment stack is React/TypeScript + FastAPI + PostgreSQL + Celer
 
 ## Troubleshooting
 
-- **Setup error:** set model and service keys in the server `.env`, then restart both processes.
+- **Setup error:** select an installed model and provider in the server `.env`, then restart the API and worker. The OpenAI provider needs `FRIDAY_API_KEY`; the private Ollama provider does not. Research also needs `FRIDAY_SEARCH_KEY`.
 - **Queued indefinitely:** start a worker. With Docker, both `scheduler` and `worker` must be healthy. Jobs remain in the database if Redis is unavailable.
 - **Origin rejected:** match the browser URL to `FRIDAY_ORIGIN`. Requests require the `X-Friday-Request: 1` header.
 - **Uncertain model outcome:** inspect your provider usage. FRIDAY intentionally does not automatically replay a potentially billed call. A new request consumes a new quota unit.
@@ -93,4 +95,4 @@ Technical references used for the integration: [OpenAI text generation](https://
 
 ## Complete-requirements reconciliation
 
-The private-owner product direction remains in force. See `docs/requirements-traceability.md` (330 tracked blocks across all 29 sections), `docs/capabilities.md`, `docs/training-plan.md`, and `docs/data-provenance.md`. Live first-milestone verification is still blocked by missing model/search configuration; no trained FRIDAY checkpoint exists. The earlier browser test referred to an older public-signup UI and must not be cited as proof of the current invitation-only workflow.
+The private-owner product direction remains in force. See `docs/requirements-traceability.md` (330 tracked blocks across all 29 sections), `docs/capabilities.md`, `docs/training-plan.md`, and `docs/data-provenance.md`. Live chat is verified with a third-party model; live research still needs search configuration. No trained FRIDAY checkpoint exists.
