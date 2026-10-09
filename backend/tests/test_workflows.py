@@ -87,6 +87,16 @@ def test_missing_credentials_are_explicit(client, monkeypatch):
     assert client.get('/api/me').json()['jobs_today'] == 0
 
 
+def test_local_provider_accepts_chat_without_cloud_key(client, monkeypatch):
+    monkeypatch.setattr(settings, 'provider', 'ollama')
+    monkeypatch.setattr(settings, 'api_key', '')
+    conversation = client.post('/api/conversations', json={}).json()
+    response = client.post(f'/api/conversations/{conversation["id"]}/messages',
+        json={'text': 'Hello FRIDAY', 'request_key': db.uid()})
+    assert response.status_code == 202
+    assert client.get('/api/status').json()['chat_configured'] is True
+
+
 def test_duplicate_submission_and_changed_parameters(client):
     key = db.uid()
     first = submit(client, key=key)
@@ -229,3 +239,4 @@ def test_sessions_survive_restart_and_expire(client):
     with db.Session.begin() as s:
         s.scalar(select(db.SessionToken)).expires = 0
     assert client.get('/api/me').status_code == 401
+
