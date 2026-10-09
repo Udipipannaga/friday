@@ -265,7 +265,8 @@ def health(s: DB):
 
 @app.get('/api/status')
 def status(user: User):
-    configured = bool(settings.api_key and settings.model and settings.provider == 'openai')
+    configured = bool(settings.model and (settings.provider == 'ollama' or
+        (settings.provider == 'openai' and settings.api_key)))
     try:
         adapter_capabilities = asdict(providers.provider_capabilities(settings.provider))
     except providers.ProviderError:
@@ -273,7 +274,8 @@ def status(user: User):
     return {'chat_configured': configured, 'research_configured': configured and bool(settings.search_key),
         'adapter_capabilities': adapter_capabilities, 'model_evaluation': 'not evaluated',
         'provider': settings.provider, 'model': settings.model or 'Not configured',
-        'missing': [name for name, present in [('FRIDAY_API_KEY', settings.api_key), ('FRIDAY_MODEL', settings.model), ('FRIDAY_SEARCH_KEY', settings.search_key)] if not present],
+        'missing': ([name for name, present in [('FRIDAY_MODEL', settings.model), ('FRIDAY_SEARCH_KEY', settings.search_key)] if not present]
+            + (['FRIDAY_API_KEY'] if settings.provider == 'openai' and not settings.api_key else [])),
         'capabilities': {'persistent_chat': 'implemented', 'research': 'implemented; requires configured services',
             'voice': 'browser TTS available; dictation depends on browser speech recognition', 'memory': 'planned', 'computer_use': 'planned', 'coding_sandbox': 'planned',
             'business_integrations': 'planned', 'mobile_apps': 'planned', 'device_pairing': 'planned'}}
@@ -318,8 +320,12 @@ def submit_job(s, user, body, kind, conversation_id=None):
         return job_view(existing)
     if not body.text.strip():
         raise HTTPException(422, 'Enter a request.')
-    if not settings.api_key or not settings.model or settings.provider != 'openai':
-        raise HTTPException(503, 'Configure FRIDAY_API_KEY and FRIDAY_MODEL on the server. No AI response has been simulated.')
+    if settings.provider not in ('openai', 'ollama'):
+        raise HTTPException(503, 'The selected FRIDAY_PROVIDER has no installed adapter. No AI response has been simulated.')
+    if not settings.model:
+        raise HTTPException(503, 'Configure FRIDAY_MODEL on the server. No AI response has been simulated.')
+    if settings.provider == 'openai' and not settings.api_key:
+        raise HTTPException(503, 'Configure FRIDAY_API_KEY on the server. No AI response has been simulated.')
     if kind == 'research' and not settings.search_key:
         raise HTTPException(503, 'Configure FRIDAY_SEARCH_KEY on the server for research.')
     day = int(time.time() // 86400)
@@ -423,3 +429,4 @@ if frontend.exists():
     @app.get('/')
     def index():
         return FileResponse(frontend / 'index.html')
+
