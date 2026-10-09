@@ -122,6 +122,69 @@ class Usage(Base):
     status: Mapped[str] = mapped_column(String(40), default='reserved')
 
 
+class OperatingCompany(Base):
+    __tablename__ = 'operating_companies'
+    __table_args__ = (UniqueConstraint('user_id', 'name'),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    user_id: Mapped[str] = mapped_column(ForeignKey('users.id'), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    offer: Mapped[str] = mapped_column(Text, default='UNKNOWN')
+    audience: Mapped[str] = mapped_column(Text, default='UNKNOWN')
+    channel: Mapped[str] = mapped_column(Text, default='UNKNOWN')
+    money_rules: Mapped[str] = mapped_column(Text, default='UNKNOWN')
+    created: Mapped[float] = mapped_column(Float, default=time.time)
+
+
+class OperatingPerson(Base):
+    __tablename__ = 'operating_people'
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    company_id: Mapped[str] = mapped_column(ForeignKey('operating_companies.id'), index=True)
+    role: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(120))
+    published_video_title: Mapped[str] = mapped_column(String(240), default='')
+    published_video_url: Mapped[str] = mapped_column(Text, default='')
+    video_verified_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    last_job: Mapped[str] = mapped_column(String(36), default='')
+    paid_on_time: Mapped[str] = mapped_column(String(20), default='UNKNOWN')
+    open_loop: Mapped[str] = mapped_column(Text, default='')
+    last_contact_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    joined_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    join_evidence: Mapped[str] = mapped_column(Text, default='')
+    opted_out: Mapped[bool] = mapped_column(default=False)
+    created: Mapped[float] = mapped_column(Float, default=time.time)
+
+
+class OperatingJob(Base):
+    __tablename__ = 'operating_jobs'
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    company_id: Mapped[str] = mapped_column(ForeignKey('operating_companies.id'), index=True)
+    creator_id: Mapped[str] = mapped_column(ForeignKey('operating_people.id'))
+    title: Mapped[str] = mapped_column(String(240))
+    brief: Mapped[str] = mapped_column(Text)
+    creator_confirmation: Mapped[str] = mapped_column(Text, default='')
+    sample_scope: Mapped[str] = mapped_column(Text, default='')
+    sample_fee: Mapped[str] = mapped_column(String(80), default='')
+    sample_deadline: Mapped[str] = mapped_column(String(80), default='')
+    invoice_amount: Mapped[str] = mapped_column(String(80), default='')
+    created: Mapped[float] = mapped_column(Float, default=time.time)
+
+
+class OperatingDraft(Base):
+    __tablename__ = 'operating_drafts'
+    __table_args__ = (UniqueConstraint('company_id', 'request_key'),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    company_id: Mapped[str] = mapped_column(ForeignKey('operating_companies.id'), index=True)
+    person_id: Mapped[str | None] = mapped_column(ForeignKey('operating_people.id'), nullable=True)
+    job_id: Mapped[str | None] = mapped_column(ForeignKey('operating_jobs.id'), nullable=True)
+    tool: Mapped[str] = mapped_column(String(40))
+    request_key: Mapped[str] = mapped_column(String(80))
+    request: Mapped[dict] = mapped_column(JSON)
+    result: Mapped[dict] = mapped_column(JSON)
+    draft: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(30), default='pending_owner_review')
+    created: Mapped[float] = mapped_column(Float, default=time.time)
+
+
 def make_engine(url):
     engine = create_engine(url, pool_pre_ping=True, connect_args={'check_same_thread': False, 'timeout': 30} if url.startswith('sqlite') else {})
     if url.startswith('sqlite'):

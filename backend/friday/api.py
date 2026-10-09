@@ -3,16 +3,16 @@ import secrets
 import time
 from dataclasses import asdict
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 from fastapi import FastAPI, Depends, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, PlainTextResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from pwdlib import PasswordHash
 from sqlalchemy import select, update, func, text
 from sqlalchemy.exc import IntegrityError
-from . import db, providers
+from . import db, providers, physics, operating
 from .config import settings
 from .execution import TERMINAL, event
 
@@ -21,6 +21,11 @@ app.add_middleware(CORSMiddleware, allow_origins=[settings.origin], allow_creden
     allow_methods=['GET', 'POST'], allow_headers=['Content-Type', 'X-Friday-Request'])
 passwords = PasswordHash.recommended()
 dummy_hash = passwords.hash(secrets.token_urlsafe(24))
+
+
+@app.exception_handler(operating.DraftBlocked)
+async def operating_input_error(_request: Request, exc: operating.DraftBlocked):
+    return JSONResponse({'detail': str(exc)}, status_code=422)
 
 
 @app.middleware('http')
@@ -277,8 +282,19 @@ def status(user: User):
         'missing': ([name for name, present in [('FRIDAY_MODEL', settings.model), ('FRIDAY_SEARCH_KEY', settings.search_key)] if not present]
             + (['FRIDAY_API_KEY'] if settings.provider == 'openai' and not settings.api_key else [])),
         'capabilities': {'persistent_chat': 'implemented', 'research': 'implemented; requires configured services',
-            'voice': 'browser TTS available; dictation depends on browser speech recognition', 'memory': 'planned', 'computer_use': 'planned', 'coding_sandbox': 'planned',
+            'physics_lift_checker': 'implemented; deterministic narrow calculator, not a trained model',
+            'voice': 'browser TTS available; dictation depends on browser speech recognition',
+            'operating_desks': 'implemented; owner-only, record-backed templates; no send or payment',
+            'memory': 'per-person operating records implemented; general AI memory planned', 'computer_use': 'planned', 'coding_sandbox': 'planned',
             'business_integrations': 'planned', 'mobile_apps': 'planned', 'device_pairing': 'planned'}}
+
+
+@app.post('/api/physics/check')
+def physics_check(body: physics.LiftSupportInput, user: User):
+    try:
+        return physics.solve_lift_support(body)
+    except physics.PhysicsInputError as exc:
+        raise HTTPException(422, str(exc)) from exc
 
 
 class Title(BaseModel):
@@ -422,6 +438,258 @@ def download(id: str, user: User, s: DB):
     return PlainTextResponse(a.content, headers={'Content-Disposition': 'attachment; filename="friday-report.md"'})
 
 
+class CompanyInput(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    name: str = Field(min_length=1, max_length=120)
+    offer: str = Field(default='UNKNOWN', max_length=2000)
+    audience: str = Field(default='UNKNOWN', max_length=2000)
+    channel: str = Field(default='UNKNOWN', max_length=2000)
+    money_rules: str = Field(default='UNKNOWN', max_length=2000)
+
+
+class CompanyNotes(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    offer: str = Field(max_length=2000)
+    audience: str = Field(max_length=2000)
+    channel: str = Field(max_length=2000)
+    money_rules: str = Field(max_length=2000)
+
+
+class PersonInput(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    role: Literal['creator', 'editor', 'other']
+    name: str = Field(min_length=1, max_length=120)
+    published_video_title: str = Field(default='', max_length=240)
+    published_video_url: str = Field(default='', max_length=1000)
+    video_verified: bool = False
+    paid_on_time: Literal['yes', 'no', 'UNKNOWN'] = 'UNKNOWN'
+    open_loop: str = Field(default='', max_length=1000)
+    join_evidence: str = Field(default='', max_length=1000)
+    opted_out: bool = False
+
+
+class PersonNotes(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    published_video_title: str | None = Field(default=None, max_length=240)
+    published_video_url: str | None = Field(default=None, max_length=1000)
+    video_verified: bool | None = None
+    paid_on_time: Literal['yes', 'no', 'UNKNOWN'] | None = None
+    open_loop: str | None = Field(default=None, max_length=1000)
+    join_evidence: str | None = Field(default=None, max_length=1000)
+    opted_out: bool | None = None
+    record_contact_now: bool = False
+
+
+class CreatorJobInput(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    creator_id: str
+    title: str = Field(min_length=1, max_length=240)
+    brief: str = Field(min_length=1, max_length=4000)
+    creator_confirmation: str = Field(min_length=1, max_length=1000)
+    sample_scope: str = Field(default='', max_length=1000)
+    sample_fee: str = Field(default='', max_length=80)
+    sample_deadline: str = Field(default='', max_length=80)
+    invoice_amount: str = Field(default='', max_length=80)
+
+
+class ToolInput(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    request_key: str = Field(min_length=16, max_length=80)
+    person_id: str | None = None
+    job_id: str | None = None
+
+
+def company_view(row):
+    return {field: getattr(row, field) for field in ('id', 'name', 'offer', 'audience', 'channel', 'money_rules', 'created')}
+
+
+def person_view(row):
+    return {field: getattr(row, field) for field in ('id', 'company_id', 'role', 'name', 'published_video_title',
+        'published_video_url', 'video_verified_at', 'last_job', 'paid_on_time', 'open_loop', 'last_contact_at',
+        'joined_at', 'join_evidence', 'opted_out', 'created')}
+
+
+def job_operating_view(row):
+    return {field: getattr(row, field) for field in ('id', 'company_id', 'creator_id', 'title', 'brief',
+        'creator_confirmation', 'sample_scope', 'sample_fee', 'sample_deadline', 'invoice_amount', 'created')}
+
+
+def draft_view(row):
+    return {field: getattr(row, field) for field in ('id', 'company_id', 'person_id', 'job_id', 'tool',
+        'request_key', 'request', 'result', 'draft', 'status', 'created')}
+
+
+def operating_company(s, company_id, user):
+    owner_only(user)
+    row = s.get(db.OperatingCompany, company_id)
+    if not row or row.user_id != user.id:
+        raise HTTPException(404, 'Company desk not found.')
+    return row
+
+
+def operating_person(s, company_id, person_id):
+    row = s.get(db.OperatingPerson, person_id) if person_id else None
+    if person_id and (not row or row.company_id != company_id):
+        raise HTTPException(404, 'Person record not found in this company desk.')
+    return row
+
+
+def operating_job(s, company_id, job_id):
+    row = s.get(db.OperatingJob, job_id) if job_id else None
+    if job_id and (not row or row.company_id != company_id):
+        raise HTTPException(404, 'Creator job not found in this company desk.')
+    return row
+
+
+@app.get('/api/operating/companies')
+def operating_companies(user: User, s: DB):
+    owner_only(user)
+    quicut = s.scalar(select(db.OperatingCompany).where(db.OperatingCompany.user_id == user.id,
+        db.OperatingCompany.name == 'QuiCut'))
+    if not quicut:
+        s.add(db.OperatingCompany(user_id=user.id, name='QuiCut',
+            offer='Match video creators with editors for a paid cut.',
+            audience='Creators are required; editors follow real creator jobs.',
+            channel='UNKNOWN',
+            money_rules='Paid cut. Editor paid sample only after a real creator job exists. Amounts and escrow: UNKNOWN. Owner sends and pays.'))
+        try:
+            s.commit()
+        except IntegrityError:
+            s.rollback()
+    return [company_view(row) for row in s.scalars(select(db.OperatingCompany).where(
+        db.OperatingCompany.user_id == user.id).order_by(db.OperatingCompany.created))]
+
+
+@app.post('/api/operating/companies', status_code=201)
+def operating_new_company(body: CompanyInput, user: User, s: DB):
+    owner_only(user)
+    data = {key: operating.safe_note(value) or 'UNKNOWN' for key, value in body.model_dump().items()}
+    if data['name'] == 'UNKNOWN':
+        raise HTTPException(422, 'Name a real company.')
+    row = db.OperatingCompany(user_id=user.id, **data)
+    s.add(row)
+    try:
+        s.commit()
+    except IntegrityError:
+        s.rollback()
+        raise HTTPException(409, 'Company desk already exists.')
+    return company_view(row)
+
+
+@app.put('/api/operating/companies/{company_id}/notes')
+def operating_notes(company_id: str, body: CompanyNotes, user: User, s: DB):
+    row = operating_company(s, company_id, user)
+    for field, value in body.model_dump().items():
+        setattr(row, field, operating.safe_note(value) or 'UNKNOWN')
+    s.commit()
+    return company_view(row)
+
+
+@app.get('/api/operating/companies/{company_id}')
+def operating_desk(company_id: str, user: User, s: DB):
+    row = operating_company(s, company_id, user)
+    people = list(s.scalars(select(db.OperatingPerson).where(db.OperatingPerson.company_id == row.id).order_by(db.OperatingPerson.created)))
+    jobs = list(s.scalars(select(db.OperatingJob).where(db.OperatingJob.company_id == row.id).order_by(db.OperatingJob.created.desc())))
+    drafts = list(s.scalars(select(db.OperatingDraft).where(db.OperatingDraft.company_id == row.id).order_by(db.OperatingDraft.created.desc()).limit(100)))
+    return {'company': company_view(row), 'people': [person_view(p) for p in people],
+        'jobs': [job_operating_view(j) for j in jobs], 'drafts': [draft_view(d) for d in drafts]}
+
+
+@app.post('/api/operating/companies/{company_id}/people', status_code=201)
+def operating_new_person(company_id: str, body: PersonInput, user: User, s: DB):
+    operating_company(s, company_id, user)
+    data = body.model_dump()
+    verified = data.pop('video_verified')
+    for field in ('name', 'published_video_title', 'published_video_url', 'open_loop', 'join_evidence'):
+        data[field] = operating.safe_note(data[field])
+    if verified and not (data['published_video_title'] and data['published_video_url']):
+        raise HTTPException(422, 'Video attestation requires a title and URL.')
+    if data['join_evidence'] and data['role'] != 'creator':
+        raise HTTPException(422, 'Demand-side join evidence is for creators only.')
+    row = db.OperatingPerson(company_id=company_id, **data,
+        video_verified_at=time.time() if verified else None,
+        joined_at=time.time() if data['join_evidence'] else None)
+    s.add(row)
+    s.commit()
+    return person_view(row)
+
+
+@app.patch('/api/operating/companies/{company_id}/people/{person_id}')
+def operating_update_person(company_id: str, person_id: str, body: PersonNotes, user: User, s: DB):
+    operating_company(s, company_id, user)
+    row = operating_person(s, company_id, person_id)
+    data = body.model_dump(exclude_unset=True)
+    if data.pop('record_contact_now', False):
+        row.last_contact_at = time.time()
+    if 'video_verified' in data:
+        row.video_verified_at = time.time() if data.pop('video_verified') else None
+    for field, value in data.items():
+        if field in ('published_video_title', 'published_video_url', 'open_loop', 'join_evidence'):
+            value = operating.safe_note(value or '')
+        if field == 'join_evidence' and value and row.role != 'creator':
+            raise HTTPException(422, 'Demand-side join evidence is for creators only.')
+        setattr(row, field, value)
+        if field == 'join_evidence':
+            row.joined_at = time.time() if value and not row.joined_at else row.joined_at if value else None
+    if row.video_verified_at and not (row.published_video_title and row.published_video_url):
+        raise HTTPException(422, 'Video attestation requires a title and URL.')
+    s.commit()
+    return person_view(row)
+
+
+@app.post('/api/operating/companies/{company_id}/jobs', status_code=201)
+def operating_new_job(company_id: str, body: CreatorJobInput, user: User, s: DB):
+    operating_company(s, company_id, user)
+    creator = operating_person(s, company_id, body.creator_id)
+    if not creator or creator.role != 'creator':
+        raise HTTPException(422, 'A creator record is required for a real job.')
+    data = body.model_dump()
+    for field in ('title', 'brief', 'creator_confirmation', 'sample_scope', 'sample_fee', 'sample_deadline', 'invoice_amount'):
+        data[field] = operating.safe_note(data[field])
+    if not data['creator_confirmation']:
+        raise HTTPException(422, 'Record how the creator confirmed this job.')
+    row = db.OperatingJob(company_id=company_id, **data)
+    s.add(row)
+    s.flush()
+    creator.last_job = row.id
+    s.commit()
+    return job_operating_view(row)
+
+
+@app.post('/api/operating/companies/{company_id}/tools/{tool}', status_code=201)
+def operating_tool(company_id: str, tool: str, body: ToolInput, user: User, s: DB):
+    company = operating_company(s, company_id, user)
+    if tool not in operating.TOOLS:
+        raise HTTPException(404, 'Unknown draft-only tool.')
+    if not settings.model or settings.provider not in ('ollama', 'openai') or (settings.provider == 'openai' and not settings.api_key):
+        return {'status': 'NOT_RUN'}
+    request = body.model_dump()
+    existing = s.scalar(select(db.OperatingDraft).where(db.OperatingDraft.company_id == company_id,
+        db.OperatingDraft.request_key == body.request_key))
+    if existing:
+        if existing.tool != tool or existing.request != request:
+            raise HTTPException(409, 'Request key belongs to a different draft request.')
+        return draft_view(existing)
+    person = operating_person(s, company_id, body.person_id)
+    job = operating_job(s, company_id, body.job_id)
+    if job and person and person.role == 'creator' and job.creator_id != person.id:
+        raise HTTPException(422, 'Creator and job records do not match.')
+    try:
+        output, result = operating.draft(s, company, tool, person, job)
+    except operating.DraftBlocked as exc:
+        raise HTTPException(409, str(exc)) from exc
+    row = db.OperatingDraft(company_id=company.id, person_id=body.person_id, job_id=body.job_id,
+        tool=tool, request_key=body.request_key, request=request, result={**result, 'generation': 'validated_template',
+        'configured_model': settings.model, 'model_called': False}, draft=output)
+    s.add(row)
+    try:
+        s.commit()
+    except IntegrityError:
+        s.rollback()
+        raise HTTPException(409, 'Concurrent draft request; refresh the desk.')
+    return draft_view(row)
+
+
 frontend = Path(__file__).resolve().parents[2] / 'frontend' / 'dist'
 if frontend.exists():
     app.mount('/assets', StaticFiles(directory=frontend / 'assets'), name='assets')
@@ -429,4 +697,3 @@ if frontend.exists():
     @app.get('/')
     def index():
         return FileResponse(frontend / 'index.html')
-
