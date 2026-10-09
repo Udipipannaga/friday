@@ -41,3 +41,42 @@ def test_provider_errors_are_sanitized(monkeypatch,status):
     with pytest.raises(providers.ProviderError) as exc:
         providers.OpenAIProvider().complete([],lambda t:None)
     assert str(status) in str(exc.value) and 'sensitive' not in str(exc.value)
+
+
+def test_private_ollama_adapter_streams_and_reports_usage(monkeypatch, client):
+    original = httpx.Client
+    monkeypatch.setattr(providers.settings, 'provider', 'ollama')
+    monkeypatch.setattr(providers.settings, 'ollama_url', 'http://ollama:11434')
+    observed = []
+    def handler(request):
+        body = json.loads(request.content)
+        observed.append(body)
+        assert str(request.url) == 'http://ollama:11434/api/chat'
+        assert body['model'] == 'fixture-model' and body['stream'] is True
+        events = [
+            {'message': {'content': 'Hello '}, 'done': False},
+            {'message': {'content': 'FRIDAY'}, 'done': False},
+            {'message': {'content': ''}, 'done': True, 'prompt_eval_count': 7, 'eval_count': 2},
+        ]
+        return httpx.Response(200, text='\n'.join(json.dumps(x) for x in events) + '\n')
+    monkeypatch.setattr(httpx, 'Client', lambda **kwargs: original(transport=httpx.MockTransport(handler)))
+    chunks = []
+    result = providers.get_provider().complete([{'role': 'user', 'content': 'hi'}], chunks.append)
+    assert result.text == 'Hello FRIDAY' and (result.input_tokens, result.output_tokens) == (7, 2)
+    assert chunks == ['Hello ', 'Hello FRIDAY'] and len(observed) == 1
+    status = client.get('/api/status').json()
+    assert status['chat_configured'] is True and 'FRIDAY_API_KEY' not in status['missing']
+
+
+def test_ollama_rejects_external_endpoint_and_sanitizes_errors(monkeypatch):
+    monkeypatch.setattr(providers.settings, 'ollama_url', 'https://example.com')
+    with pytest.raises(providers.ProviderError, match='private local'):
+        providers.OllamaProvider().complete([], lambda text: None)
+    monkeypatch.setattr(providers.settings, 'ollama_url', 'http://127.0.0.1:11434')
+    original = httpx.Client
+    monkeypatch.setattr(httpx, 'Client', lambda **kwargs: original(transport=httpx.MockTransport(
+        lambda request: httpx.Response(404, text='private model details'))))
+    with pytest.raises(providers.ProviderError) as exc:
+        providers.OllamaProvider().complete([], lambda text: None)
+    assert '404' in str(exc.value) and 'private model details' not in str(exc.value)
+
