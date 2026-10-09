@@ -185,6 +185,20 @@ class OperatingDraft(Base):
     created: Mapped[float] = mapped_column(Float, default=time.time)
 
 
+class StudyReview(Base):
+    __tablename__ = 'study_reviews'
+    __table_args__ = (UniqueConstraint('run_id', 'case_id', 'user_id'),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    run_id: Mapped[str] = mapped_column(String(120), index=True)
+    case_id: Mapped[str] = mapped_column(String(20))
+    user_id: Mapped[str] = mapped_column(ForeignKey('users.id'), index=True)
+    reference_status: Mapped[str] = mapped_column(String(20))
+    reference_note: Mapped[str] = mapped_column(Text)
+    score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    rationale: Mapped[str] = mapped_column(Text, default='')
+    reviewed_at: Mapped[float] = mapped_column(Float, default=time.time)
+
+
 def make_engine(url):
     engine = create_engine(url, pool_pre_ping=True, connect_args={'check_same_thread': False, 'timeout': 30} if url.startswith('sqlite') else {})
     if url.startswith('sqlite'):

@@ -47,6 +47,7 @@ services:
       db: {condition: service_healthy}
   api:
     <<: *app
+    volumes: ["./private-evaluation:/app/private-evaluation:ro"]
     command: ["uvicorn", "friday.api:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--proxy-headers", "--forwarded-allow-ips=*"]
     ports: ["127.0.0.1:8000:8000"]
     depends_on:

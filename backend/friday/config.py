@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     max_output_tokens: int = 3000
     lease_seconds: int = 180
     task_seconds: int = 900
+    study_queue_path: str = '/app/private-evaluation/human-review-queue.jsonl'
+    study_manifest_path: str = '/app/private-evaluation/run-manifest.json'
 
 
 settings = Settings()
-

@@ -1,4 +1,5 @@
 import hashlib
+import json
 import secrets
 import time
 from dataclasses import asdict
@@ -12,7 +13,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from pwdlib import PasswordHash
 from sqlalchemy import select, update, func, text
 from sqlalchemy.exc import IntegrityError
-from . import db, providers, physics, operating
+from . import db, providers, physics, operating, study_review
 from .config import settings
 from .execution import TERMINAL, event
 
@@ -688,6 +689,63 @@ def operating_tool(company_id: str, tool: str, body: ToolInput, user: User, s: D
         s.rollback()
         raise HTTPException(409, 'Concurrent draft request; refresh the desk.')
     return draft_view(row)
+
+
+class StudyReviewInput(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    reference_status: Literal['verified', 'invalid']
+    reference_note: str = Field(min_length=1, max_length=2000)
+    score: Literal[0, 1, 2] | None = None
+    rationale: str = Field(default='', max_length=2000)
+
+
+@app.get('/api/evaluation/study-pack')
+def study_pack(user: User, s: DB):
+    owner_only(user)
+    manifest, rows = study_review.load_run()
+    saved = {row.case_id: study_review.review_view(row, user.email) for row in s.scalars(
+        select(db.StudyReview).where(db.StudyReview.run_id == manifest['run_id'], db.StudyReview.user_id == user.id))}
+    return {'run_id': manifest['run_id'], 'model_id': manifest['model_id'],
+        'execution_path': manifest.get('execution_path', 'UNKNOWN'), 'cases': [
+            {**row, **saved.get(row['id'], {'reference_review': None, 'review': None})} for row in rows]}
+
+
+@app.post('/api/evaluation/study-pack/{case_id}/review')
+def save_study_review(case_id: str, body: StudyReviewInput, user: User, s: DB):
+    owner_only(user)
+    manifest, rows = study_review.load_run()
+    if case_id not in {row['id'] for row in rows}:
+        raise HTTPException(404, 'Study case not found.')
+    reference_note = body.reference_note.strip()
+    rationale = body.rationale.strip()
+    if not reference_note or (body.reference_status == 'verified' and (body.score is None or not rationale)):
+        raise HTTPException(422, 'A verified reference and answer score require specific review notes.')
+    if body.reference_status == 'invalid' and (body.score is not None or rationale):
+        raise HTTPException(422, 'An invalid reference cannot support an answer score.')
+    row = s.scalar(select(db.StudyReview).where(db.StudyReview.run_id == manifest['run_id'],
+        db.StudyReview.case_id == case_id, db.StudyReview.user_id == user.id))
+    if not row:
+        row = db.StudyReview(run_id=manifest['run_id'], case_id=case_id, user_id=user.id)
+        s.add(row)
+    row.reference_status = body.reference_status
+    row.reference_note = reference_note
+    row.score = body.score
+    row.rationale = rationale
+    row.reviewed_at = time.time()
+    s.commit()
+    return study_review.review_view(row, user.email)
+
+
+@app.get('/api/evaluation/study-pack/export')
+def export_study_reviews(user: User, s: DB):
+    owner_only(user)
+    manifest, rows = study_review.load_run()
+    saved = {row.case_id: study_review.review_view(row, user.email) for row in s.scalars(
+        select(db.StudyReview).where(db.StudyReview.run_id == manifest['run_id'], db.StudyReview.user_id == user.id))}
+    content = ''.join(json.dumps({**row, **saved.get(row['id'],
+        {'reference_review': None, 'review': None})}, ensure_ascii=False) + '\n' for row in rows)
+    return PlainTextResponse(content, media_type='application/x-ndjson',
+        headers={'Content-Disposition': 'attachment; filename="friday-study-human-reviews.jsonl"'})
 
 
 frontend = Path(__file__).resolve().parents[2] / 'frontend' / 'dist'
