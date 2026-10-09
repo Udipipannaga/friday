@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     provider: str = 'openai'
     model: str = ''
     api_key: str = ''
+    ollama_url: str = 'http://ollama:11434'
     search_key: str = ''
     daily_jobs: int = 30
     max_active_jobs: int = 3
@@ -21,3 +22,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
