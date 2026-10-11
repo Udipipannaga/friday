@@ -703,11 +703,15 @@ class StudyReviewInput(BaseModel):
 def study_pack(user: User, s: DB):
     owner_only(user)
     manifest, rows = study_review.load_run()
+    ai_triage = study_review.load_ai_triage(manifest, rows)
     saved = {row.case_id: study_review.review_view(row, user.email) for row in s.scalars(
         select(db.StudyReview).where(db.StudyReview.run_id == manifest['run_id'], db.StudyReview.user_id == user.id))}
     return {'run_id': manifest['run_id'], 'model_id': manifest['model_id'],
-        'execution_path': manifest.get('execution_path', 'UNKNOWN'), 'cases': [
-            {**row, **saved.get(row['id'], {'reference_review': None, 'review': None})} for row in rows]}
+        'execution_path': manifest.get('execution_path', 'UNKNOWN'),
+        'ai_triage_status': 'first_pass_available' if ai_triage is not None else 'not_available',
+        'cases': [
+            {**row, **saved.get(row['id'], {'reference_review': None, 'review': None}),
+             'ai_triage': ai_triage.get(row['id']) if ai_triage is not None else None} for row in rows]}
 
 
 @app.post('/api/evaluation/study-pack/{case_id}/review')

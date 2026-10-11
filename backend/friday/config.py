@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     task_seconds: int = 900
     study_queue_path: str = '/app/private-evaluation/human-review-queue.jsonl'
     study_manifest_path: str = '/app/private-evaluation/run-manifest.json'
+    study_ai_triage_path: str = '/app/private-evaluation/ai-triage-2026-10-11.jsonl'
 
 
 settings = Settings()

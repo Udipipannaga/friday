@@ -15,6 +15,7 @@ def install_run(tmp_path, monkeypatch):
             ('M01', '3 m/s'), ('M02', '4 m/s'))), encoding='utf-8')
     monkeypatch.setattr(settings, 'study_manifest_path', str(manifest))
     monkeypatch.setattr(settings, 'study_queue_path', str(queue))
+    monkeypatch.setattr(settings, 'study_ai_triage_path', str(tmp_path / 'ai-triage.jsonl'))
 
 
 def test_owner_review_is_durable_and_raw_answer_unchanged(client, tmp_path, monkeypatch):
@@ -53,3 +54,24 @@ def test_reference_issue_blocks_score_and_missing_run_fails_closed(client, tmp_p
     assert invalid.status_code == 200 and invalid.json()['review'] is None
     assert client.post('/api/evaluation/study-pack/UNKNOWN/review', json={
         'reference_status': 'invalid', 'reference_note': 'No case'}).status_code == 404
+
+
+def test_ai_triage_is_separate_from_human_review_and_binds_raw_answers(client, tmp_path, monkeypatch):
+    install_run(tmp_path, monkeypatch)
+    monkeypatch.setattr(settings, 'owner_email', 'alice@example.com')
+    path = tmp_path / 'ai-triage.jsonl'
+    rows = []
+    for case_id, kind, flagged in [('M01', 'not_flagged', False), ('M02', 'mismatch', True)]:
+        rows.append({'id': case_id, 'run_id': 'test-friday-run', 'model_id': 'local-fixture',
+            'candidate_raw_response_body_sha256': case_id, 'kind': kind, 'flagged': flagged,
+            'note': 'Independent first-pass note for the saved answer.',
+            'screened_by': 'AI assistant', 'screened_date': '2026-10-11',
+            'score': None, 'reference_human_verified': False, 'model_human_reviewed': False})
+    path.write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
+    payload = client.get('/api/evaluation/study-pack').json()
+    assert payload['ai_triage_status'] == 'first_pass_available'
+    assert payload['cases'][1]['ai_triage']['flagged'] is True
+    assert payload['cases'][1]['review'] is None
+    rows[1]['candidate_raw_response_body_sha256'] = 'different-answer'
+    path.write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
+    assert client.get('/api/evaluation/study-pack').status_code == 503

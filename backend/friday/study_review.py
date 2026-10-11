@@ -24,6 +24,35 @@ def load_run() -> tuple[dict, list[dict]]:
     return manifest, rows
 
 
+def load_ai_triage(manifest: dict, rows: list[dict]) -> dict[str, dict] | None:
+    """Read a separate AI issue screen, never human judgments or a score."""
+    path = Path(settings.study_ai_triage_path)
+    if not path.exists():
+        return None
+    try:
+        triage = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
+    except (OSError, ValueError, TypeError) as exc:
+        raise HTTPException(503, 'The private AI triage file cannot be read.') from exc
+    by_id = {item.get('id'): item for item in triage if isinstance(item, dict) and isinstance(item.get('id'), str)}
+    source = {row['id']: row for row in rows}
+    if len(triage) != len(rows) or len(by_id) != len(rows) or set(by_id) != set(source):
+        raise HTTPException(503, 'The private AI triage does not match this study run.')
+    allowed = {'mismatch', 'incomplete', 'reasoning_issue', 'convention_issue', 'not_flagged'}
+    for case_id, item in by_id.items():
+        if (item.get('run_id') != manifest['run_id'] or item.get('model_id') != manifest['model_id']
+                or item.get('candidate_raw_response_body_sha256') != source[case_id].get('raw_response_body_sha256')
+                or item.get('kind') not in allowed or type(item.get('flagged')) is not bool
+                or item['flagged'] != (item['kind'] != 'not_flagged')
+                or not isinstance(item.get('note'), str) or not item['note'].strip()
+                or not isinstance(item.get('screened_by'), str) or not item['screened_by'].strip()
+                or not isinstance(item.get('screened_date'), str) or not item['screened_date'].strip()
+                or item.get('score') is not None or item.get('model_human_reviewed') is not False
+                or item.get('reference_human_verified') is not False):
+            raise HTTPException(503, 'The private AI triage has invalid provenance or scoring fields.')
+    return {case_id: {key: item[key] for key in ('kind', 'flagged', 'note', 'screened_by', 'screened_date')}
+            for case_id, item in by_id.items()}
+
+
 def review_view(row, user_email: str) -> dict:
     date = datetime.fromtimestamp(row.reviewed_at, timezone.utc).date().isoformat()
     reference = {'status': row.reference_status, 'reviewer': user_email, 'reviewed_at': date,
