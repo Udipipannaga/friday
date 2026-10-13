@@ -11,7 +11,8 @@ FRIDAY is Adithya's private product, with owner access and separately approved t
 | Command center and project dashboard | Implemented; updated fixture browser workflow and prior manual inspection | Live provider run and multi-device production validation |
 | Capability-aware provider boundary | Adapter capabilities declared; unknown adapter rejected | Future checkpoint adapter and per-model evaluation; no silent fallback |
 | Cloud execution while laptop is off | Planned deployment | Server deployed and laptop-off acceptance test |
-| Voice and user-controlled long-term memory | Planned | Full permission, stop, CRUD/export/deletion workflows |
+| Browser voice input/playback | Implemented where browser supports it | Provider speech, interruption and cross-device verification remain |
+| Explicit user-controlled memory | Implemented and deployed | Local save/edit/delete/context tests pass; live owner page verified; live lifecycle not yet exercised |
 | Consequential action approvals | Planned | Material-parameter binding, expiry/replay/ownership tests; account invitations are not action approvals |
 | Browser/computer tools and isolated coding | Planned | Hardened worker isolation, actual actions and verification |
 | Bots, scheduling, integrations and artifacts beyond Markdown research | Planned | Functional bounded runtime and end-to-end tests |
@@ -19,3 +20,4 @@ FRIDAY is Adithya's private product, with owner access and separately approved t
 | Council, mobile and physical devices | Planned | Actual integrations; no fake pairing or simulated support |
 
 First live milestone remains BLOCKED by absent real model/search configuration. SQLite local evidence does not establish PostgreSQL deployment behavior. Reference products are capability references only, not dependencies.
+

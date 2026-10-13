@@ -63,6 +63,17 @@ class Message(Base):
     created: Mapped[float] = mapped_column(Float, default=time.time)
 
 
+class Memory(Base):
+    __tablename__ = 'memories'
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    user_id: Mapped[str] = mapped_column(ForeignKey('users.id'), index=True)
+    label: Mapped[str] = mapped_column(String(80))
+    content: Mapped[str] = mapped_column(String(500))
+    origin: Mapped[str] = mapped_column(String(30), default='user_explicit')
+    created: Mapped[float] = mapped_column(Float, default=time.time)
+    updated: Mapped[float] = mapped_column(Float, default=time.time)
+
+
 class Job(Base):
     __tablename__ = 'jobs'
     __table_args__ = (UniqueConstraint('user_id', 'request_key'),)
@@ -211,3 +222,4 @@ def make_engine(url):
 
 engine = make_engine(settings.database_url)
 Session = sessionmaker(engine, expire_on_commit=False)
+

@@ -30,7 +30,7 @@ URL tests cover forbidden schemes, credentials, ports, control characters, backs
 - **Live OpenAI model access and conversation quality:** no API key or explicit model configured.
 - **Live Brave Search and complete real-source/model research:** no search key configured. The browser integration used clearly labeled test fixtures for search, page content and model output. It does not prove live model synthesis quality.
 - **PostgreSQL, Redis, Celery and Docker startup/failover:** Docker is absent on this host. SQLite/local-worker results must not be described as those integration tests.
-- **Public hosting, verified identity, voice, long-term memory, computer control, coding sandboxes, additional artifact formats, integrations and devices:** not implemented/deployed/tested.
+- **Verified identity, full voice provider workflow, semantic/automatic memory, computer control, coding sandboxes, additional artifact formats, integrations and devices:** not implemented/deployed/tested. Private HTTPS hosting is live. Browser speech controls are available where supported. Explicit memory CRUD/context passed local tests and its empty owner page was verified on the VPS; live save/edit/delete with a model reply remains untested.
 - No performance comparison or model-equivalence benchmark was run.
 
 ## Reproduce the fixture browser test
@@ -95,3 +95,4 @@ A user-authorized Colab T4 run of Qwen2.5-0.5B-Instruct completed on five synthe
 ## Task-diagnostic preparation
 
 Added 12 planning/research/writing development cases and an offline structural answer checker. Training-kit unit suite: 19 tests passed (seven new checker tests). No model run for these cases, no extra GPU credits, and no approved training-data collection. Free-text truth/safety remains a human review requirement. See ../../friday-training/task-evaluation/README.md.
+

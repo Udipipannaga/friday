@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from pwdlib import PasswordHash
 from sqlalchemy import select, update, func, text
 from sqlalchemy.exc import IntegrityError
-from . import db, providers, physics, operating, study_review
+from . import db, providers, physics, operating, study_review, memory
 from .config import settings
 from .execution import TERMINAL, event
 
@@ -286,7 +286,7 @@ def status(user: User):
             'physics_lift_checker': 'implemented; deterministic narrow calculator, not a trained model',
             'voice': 'browser TTS available; dictation depends on browser speech recognition',
             'operating_desks': 'implemented; owner-only, record-backed templates; no send or payment',
-            'memory': 'per-person operating records implemented; general AI memory planned', 'computer_use': 'planned', 'coding_sandbox': 'planned',
+            'memory': 'explicit user-controlled memories implemented for later chats; automatic extraction planned', 'computer_use': 'planned', 'coding_sandbox': 'planned',
             'business_integrations': 'planned', 'mobile_apps': 'planned', 'device_pairing': 'planned'}}
 
 
@@ -322,6 +322,60 @@ def conversation(id: str, user: User, s: DB):
     messages = s.scalars(select(db.Message).where(db.Message.conversation_id == id).order_by(db.Message.created, db.Message.id))
     jobs = s.scalars(select(db.Job).where(db.Job.conversation_id == id).order_by(db.Job.created.desc()).limit(10))
     return {'id': c.id, 'title': c.title, 'messages': [{'id': m.id, 'role': m.role, 'text': m.text} for m in messages], 'jobs': [job_view(j) for j in jobs]}
+
+
+class MemoryInput(BaseModel):
+    label: str = Field(min_length=1, max_length=80)
+    content: str = Field(min_length=1, max_length=500)
+
+
+@app.get('/api/memories')
+def memories(user: User, s: DB):
+    rows = s.scalars(select(db.Memory).where(db.Memory.user_id == user.id)
+        .order_by(db.Memory.updated.desc(), db.Memory.id.desc()).limit(50))
+    return [memory.view(row) for row in rows]
+
+
+@app.post('/api/memories', status_code=201)
+def save_memory(body: MemoryInput, user: User, s: DB):
+    try:
+        label, content = memory.clean(body.label, body.content)
+    except memory.MemoryRejected as exc:
+        raise HTTPException(422, str(exc)) from exc
+    if s.scalar(select(func.count()).select_from(db.Memory).where(db.Memory.user_id == user.id)) >= 50:
+        raise HTTPException(429, 'Memory limit reached. Edit or delete an item first.')
+    row = db.Memory(user_id=user.id, label=label, content=content)
+    s.add(row)
+    s.commit()
+    return memory.view(row)
+
+
+@app.post('/api/memories/{id}/update')
+def update_memory(id: str, body: MemoryInput, user: User, s: DB):
+    row = require_owned(s, db.Memory, id, user)
+    try:
+        row.label, row.content = memory.clean(body.label, body.content)
+    except memory.MemoryRejected as exc:
+        raise HTTPException(422, str(exc)) from exc
+    row.updated = time.time()
+    s.commit()
+    return memory.view(row)
+
+
+@app.post('/api/memories/{id}/delete')
+def delete_memory(id: str, user: User, s: DB):
+    row = require_owned(s, db.Memory, id, user)
+    s.delete(row)
+    s.commit()
+    return {'deleted': id}
+
+
+@app.get('/api/memories/export')
+def export_memories(user: User, s: DB):
+    rows = s.scalars(select(db.Memory).where(db.Memory.user_id == user.id)
+        .order_by(db.Memory.created, db.Memory.id))
+    return JSONResponse([memory.view(row) for row in rows],
+        headers={'Content-Disposition': 'attachment; filename="friday-memories.json"'})
 
 
 class Submit(BaseModel):
@@ -759,3 +813,4 @@ if frontend.exists():
     @app.get('/')
     def index():
         return FileResponse(frontend / 'index.html')
+

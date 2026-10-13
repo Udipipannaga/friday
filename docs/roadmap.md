@@ -11,16 +11,17 @@ FRIDAY owns its product interface, user accounts, orchestration, durable state, 
 | Durable research | Brave Search, HTTPS pages, model synthesis; FRIDAY plan/checkpoints/sources/report | Start, close frontend, recover worker, inspect actual source-linked report | Implemented; fixture E2E + real-page retrieval tested; live search/model unconfigured |
 | Activity and usage | Database events, reservations, reported tokens, job limits | Observe steps; exceed quota; interrupted usage shown uncertain | Implemented/tested locally; exact monetary cap not provided |
 | Markdown artifacts | Database + authenticated download | Research report saved and retrievable only by owner | Implemented/tested; other artifact formats planned |
-| Cloud operation | PostgreSQL, Celery, Redis, Docker Compose | Start containers, kill worker/Redis, recover without lost checkpoint | Configuration supplied; not run on this Windows host |
+| Cloud operation | PostgreSQL, Celery, Redis, Docker Compose, Caddy HTTPS | Start containers; verify public sign-in and private data services; test worker/broker failure and restore | VPS containers, health, owner-session isolation and conversation persistence smoke-tested; HTTPS page verified October 5; authenticated HTTPS browser flow, broker-failure and restore drills outstanding |
+| Physics calculation | FRIDAY's deterministic lift-versus-weight tool with bounded units | Signed-in request; reject bad units; compare force values and support decision | One narrow formula implemented and locally API-tested; no physics-trained model or real aerodynamic solver |
 
-**Gate before expansion:** configure the model and search provider, validate real conversation + research end to end, and run the Compose/PostgreSQL/Celery recovery suite on a Docker-capable host. Then perform a private deployment review. Do not call this milestone fully live-verified until those checks pass.
+**Gate before expansion:** the private HTTPS deployment exists, but model and search credentials are still absent. Validate an authenticated browser session on the HTTPS origin, then a real conversation and source-based research job; finish PostgreSQL/Celery recovery, backup/restore and cross-account checks on the VPS. Do not call AI workflows fully live-verified until those checks pass.
 
 ## Stage 2 — voice and user-controlled memory
 
 | Capability | Required work | Acceptance test | Status |
 |---|---|---|---|
 | Voice | Replaceable speech-to-text and speech generation; push-to-talk; permission/error states; stop playback; text fallback | Speak, interrupt playback, deny mic, recover; verify on Windows/mobile browsers | Planned |
-| Personal memory | Separate explicit user-approved memory store; create/read/edit/delete; no secrets; basic retrieval first | Save an item, use in later chat, edit, delete and verify absence from retrieval/index | Planned |
+| Personal memory | Explicit user-approved store with create/read/edit/delete/export and bounded chat context | Local lifecycle passes; live owner page verified. Exercise live save/edit/delete and confirm later replies; add stronger sensitive-data controls before wider use | Basic version deployed; further verification planned |
 | Conversation lifecycle | Verified identity, recovery, session inventory/revocation, account export/deletion | Verify email ownership; revoke session; export/delete data consistently | Planned; required before public registration |
 
 No continuous recording, wake-word, locked-screen speech, emotional experience or automatically invented memories are claimed.
@@ -32,10 +33,10 @@ No continuous recording, wake-word, locked-screen speech, emotional experience o
 | Browser/computer tools | Isolated Playwright worker, typed tools, scoped credentials, screenshot/action logs, challenge handoff | Complete a sandbox task; stop at authentication/CAPTCHA; deny unauthorized destinations | Planned |
 | Windows control | Separately installed authenticated companion; permission prompts; offline waiting state | Authorized local action works when awake; queues safely while offline; revoked device cannot act | Planned |
 | Coding | Disposable workspaces/containers, constrained execution/network, diffs and test artifacts | Change a fixture repository, run meaningful tests, export diff; verify escape/secret denial | Planned |
-| Mathematics/data analysis | Sandboxed computation and verified result artifacts | Reproduce a calculation with code and numeric checks | Planned; model-only chat is not a verified calculator |
+| Mathematics/data analysis | Expand the current bounded physics checker into isolated computation and verified artifacts | Reproduce varied calculations with independent numerical checks | Static lift-versus-weight checker implemented; broader solver, data analysis and artifact workflow planned |
 | File analysis | Size/type checks, isolated parsers, provenance and retention controls | Analyze test documents with known answers; reject hostile/oversized inputs | Planned |
 | Document/sheet/slide output | Dedicated generators and render/validation steps | Export real artifacts and verify content/layout/formulas | Planned |
-| Vision and image generation | Capability-aware provider adapters, upload controls and separate image-generation tool | Analyze reference image; generate/export image; verify disclosure and limits | Planned |
+| Vision and image generation | Capability-aware provider adapters, upload controls and separate image-generation tool | Analyze an authorized reference image; generate/export an image; verify disclosure and limits | Planned; no camera or model vision path is active |
 
 ## Stage 4 — specialist skills and service integrations
 
@@ -49,8 +50,11 @@ Acceptance examples: a marketing plan with checked source material; lead researc
 
 Android/iOS clients (React Native + Expo subject to native requirements) share the API and durable server state. Phones are interfaces, not required background workers. Add short-lived pairing, per-device credentials, scoped memory access, revocation and reconnect synchronization. Then glasses, a talking-character watch and desk companion. Finally a robot with a separate constrained motion controller, physical safety mechanisms and independent hardware testing.
 
+Camera and gesture ideas inspired by external projects must pass source/license review and run behind explicit device permission, visible capture state, bounded frame handling, gesture calibration, local stop controls and action approvals. VisionClaw/Jester-style behavior is not installed or connected to FRIDAY yet. A browser-only feature must not claim to control glasses or a robot.
+
 Acceptance: switch clients without losing history/project state; revoke a paired device and reject later calls; disconnected hardware cannot perform stale actions; verify emergency stop separately from language-model behavior. All native clients and device integrations remain planned.
 
 ## Continuation reconciliation (2026-10-03)
 
-See [requirements-traceability.md](requirements-traceability.md) for all 330 tracked requirement blocks and [capabilities.md](capabilities.md) for current boundaries. Priority is unchanged: verify one real-provider persistent conversation and source-based durable research run before voice, memory, computer use or specialists. P1 live verification is blocked by credentials; P2 PostgreSQL/Compose acceptance is blocked by absent Docker. Track B prepares provenance and family-separated datasets only; no paid collection/training.
+See [requirements-traceability.md](requirements-traceability.md) for all 330 tracked requirement blocks and [capabilities.md](capabilities.md) for current boundaries. Priority is unchanged: verify one real-provider persistent conversation and source-based durable research run before voice, memory, computer use or specialists. P1 live verification is blocked by credentials. Docker is absent on Windows, but the Hostinger VPS now runs the Compose stack and HTTPS entry point; the failure/recovery portion of P2 remains. Track B prepares provenance and family-separated datasets only; no paid collection or fine-tuning. The small physics fixture holdout is not a model benchmark; see [physics-learning.md](physics-learning.md).
+
