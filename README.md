@@ -6,7 +6,7 @@ An independent AI application with its own accounts, conversations, project stat
 
 The [interactive interface](docs/interface.md) includes Higgsfield-generated orbital artwork, a Ctrl/Cmd+K command palette, focus mode, prompt chips, message copying, research filters, accent choices and reduced-motion controls.
 
-The hosted private instance is at [https://friday.srv2033118.hstgr.cloud](https://friday.srv2033118.hstgr.cloud). New visitors can request access; only the owner can approve and issue invitations. Public self-registration is closed. The GitHub repository holds source and reviewed deployment files; the running database and secrets stay on the VPS. See [deployment status](docs/deployment.md).
+The hosted private instance is at [https://frieday.tech](https://frieday.tech). `www.frieday.tech` and the former Hostinger hostname redirect there. New visitors can request access; only the owner can approve and issue invitations. Public self-registration is closed. The GitHub repository holds source and reviewed deployment files; the running database and secrets stay on the VPS. See [deployment status](docs/deployment.md).
 
 ## Start on Windows
 
@@ -100,3 +100,4 @@ Technical references used for the integration: [OpenAI text generation](https://
 ## Complete-requirements reconciliation
 
 The private-owner product direction remains in force. See `docs/requirements-traceability.md` (330 tracked blocks across all 29 sections), `docs/capabilities.md`, `docs/training-plan.md`, and `docs/data-provenance.md`. The current owner-only operating desk was browser-tested on October 9, 2026; live model and search execution still require separate verification. No trained FRIDAY checkpoint exists. The earlier browser test referred to an older public-signup UI and must not be cited as proof of the current invitation-only workflow.
+

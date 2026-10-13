@@ -1,4 +1,15 @@
-friday.srv2033118.hstgr.cloud {
+frieday.tech {
     encode zstd gzip
-    reverse_proxy api:8000
+    reverse_proxy api:8000 {
+        header_up X-Forwarded-For {remote_host}
+    }
 }
+
+www.frieday.tech {
+    redir https://frieday.tech{uri} permanent
+}
+
+friday.srv2033118.hstgr.cloud {
+    redir https://frieday.tech{uri} permanent
+}
+
