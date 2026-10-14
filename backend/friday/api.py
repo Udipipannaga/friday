@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from pwdlib import PasswordHash
 from sqlalchemy import select, update, func, text
 from sqlalchemy.exc import IntegrityError
-from . import db, providers, physics, operating, study_review, memory
+from . import db, providers, physics, operating, study_review, memory, retrieval
 from .config import settings
 from .execution import TERMINAL, event
 
@@ -278,11 +278,12 @@ def status(user: User):
     except providers.ProviderError:
         adapter_capabilities = None
     return {'chat_configured': configured, 'research_configured': configured and bool(settings.search_key),
+        'source_research_configured': configured,
         'adapter_capabilities': adapter_capabilities, 'model_evaluation': 'not evaluated',
         'provider': settings.provider, 'model': settings.model or 'Not configured',
         'missing': ([name for name, present in [('FRIDAY_MODEL', settings.model), ('FRIDAY_SEARCH_KEY', settings.search_key)] if not present]
             + (['FRIDAY_API_KEY'] if settings.provider == 'openai' and not settings.api_key else [])),
-        'capabilities': {'persistent_chat': 'implemented', 'research': 'implemented; requires configured services',
+        'capabilities': {'persistent_chat': 'implemented', 'research': 'implemented; supplied-URL mode needs a model, web search also needs FRIDAY_SEARCH_KEY',
             'physics_lift_checker': 'implemented; deterministic narrow calculator, not a trained model',
             'voice': 'browser TTS available; dictation depends on browser speech recognition',
             'operating_desks': 'implemented; owner-only, record-backed templates; no send or payment',
@@ -383,10 +384,16 @@ class Submit(BaseModel):
     request_key: str = Field(min_length=16, max_length=80)
 
 
+class ResearchSubmit(Submit):
+    source_urls: list[str] = Field(default_factory=list, max_length=5)
+
+
 def submit_job(s, user, body, kind, conversation_id=None):
+    source_urls = getattr(body, 'source_urls', []) if kind == 'research' else []
     existing = s.scalar(select(db.Job).where(db.Job.user_id == user.id, db.Job.request_key == body.request_key))
     if existing:
-        if existing.goal != body.text.strip() or existing.kind != kind or existing.conversation_id != conversation_id:
+        if (existing.goal != body.text.strip() or existing.kind != kind or existing.conversation_id != conversation_id
+                or existing.checkpoint.get('source_urls', []) != source_urls):
             raise HTTPException(409, 'Request key already belongs to a different action.')
         return job_view(existing)
     if not body.text.strip():
@@ -397,8 +404,8 @@ def submit_job(s, user, body, kind, conversation_id=None):
         raise HTTPException(503, 'Configure FRIDAY_MODEL on the server. No AI response has been simulated.')
     if settings.provider == 'openai' and not settings.api_key:
         raise HTTPException(503, 'Configure FRIDAY_API_KEY on the server. No AI response has been simulated.')
-    if kind == 'research' and not settings.search_key:
-        raise HTTPException(503, 'Configure FRIDAY_SEARCH_KEY on the server for research.')
+    if kind == 'research' and not settings.search_key and not source_urls:
+        raise HTTPException(503, 'Add public HTTPS source URLs or configure FRIDAY_SEARCH_KEY on the server.')
     day = int(time.time() // 86400)
     s.execute(update(db.User).where(db.User.id == user.id, db.User.quota_day != day).values(quota_day=day, quota_used=0))
     reserved = s.execute(update(db.User).where(db.User.id == user.id, db.User.quota_used < settings.daily_jobs).values(quota_used=db.User.quota_used + 1))
@@ -415,7 +422,8 @@ def submit_job(s, user, body, kind, conversation_id=None):
         if busy:
             s.rollback()
             raise HTTPException(409, 'Wait for this conversation’s current response or stop it.')
-    j = db.Job(user_id=user.id, conversation_id=conversation_id, kind=kind, goal=body.text.strip(), request_key=body.request_key)
+    j = db.Job(user_id=user.id, conversation_id=conversation_id, kind=kind, goal=body.text.strip(),
+        request_key=body.request_key, checkpoint={'source_urls': source_urls} if source_urls else {})
     s.add(j)
     if conversation_id:
         s.add(db.Message(conversation_id=conversation_id, role='user', text=body.text.strip()))
@@ -429,7 +437,9 @@ def submit_job(s, user, body, kind, conversation_id=None):
     except IntegrityError:
         s.rollback()
         existing = s.scalar(select(db.Job).where(db.Job.user_id == user.id, db.Job.request_key == body.request_key))
-        if existing and existing.goal == body.text.strip() and existing.kind == kind and existing.conversation_id == conversation_id:
+        if (existing and existing.goal == body.text.strip() and existing.kind == kind
+                and existing.conversation_id == conversation_id
+                and existing.checkpoint.get('source_urls', []) == source_urls):
             return job_view(existing)
         raise HTTPException(409, 'Conflicting request key.')
     return job_view(j)
@@ -442,15 +452,20 @@ def send(id: str, body: Submit, user: User, s: DB):
 
 
 @app.post('/api/projects', status_code=202)
-def research(body: Submit, user: User, s: DB):
+def research(body: ResearchSubmit, user: User, s: DB):
     if len(body.text) > 2000:
         raise HTTPException(422, 'Research question must be 2000 characters or fewer.')
+    try:
+        body.source_urls = retrieval.validate_source_urls(body.source_urls)
+    except retrieval.RetrievalError as exc:
+        raise HTTPException(422, str(exc)) from exc
     return submit_job(s, user, body, 'research')
 
 
 def job_view(j):
     return {'id': j.id, 'kind': j.kind, 'goal': j.goal, 'status': j.status, 'stage': j.stage,
-        'partial': j.partial, 'error': j.error, 'attempts': j.attempts, 'created': j.created}
+        'partial': j.partial, 'error': j.error, 'attempts': j.attempts, 'created': j.created,
+        'source_urls': j.checkpoint.get('source_urls', []) if j.kind == 'research' else []}
 
 
 @app.get('/api/projects')

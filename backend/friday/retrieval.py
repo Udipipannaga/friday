@@ -32,6 +32,26 @@ def resolve_public(url):
         raise RetrievalError('Source address could not be safely resolved.') from exc
 
 
+def validate_source_urls(urls):
+    """Validate a short user-supplied source list without doing network I/O."""
+    if len(urls) > 5:
+        raise RetrievalError('Use no more than five source URLs.')
+    checked = []
+    for url in urls:
+        if not isinstance(url, str) or len(url) > 2048 or any(ord(c) < 33 for c in url) or '\\' in url:
+            raise RetrievalError('Invalid source URL.')
+        try:
+            parts = urlsplit(url)
+            if parts.scheme != 'https' or not parts.hostname or parts.username or parts.password or parts.port not in (None, 443) or parts.fragment:
+                raise RetrievalError('Only public HTTPS source URLs on port 443 are allowed.')
+            parts.hostname.encode('idna')
+        except (ValueError, UnicodeError) as exc:
+            raise RetrievalError('Invalid source URL.') from exc
+        if url not in checked:
+            checked.append(url)
+    return checked
+
+
 class PinnedHTTPS(http.client.HTTPSConnection):
     def __init__(self, host, ip, timeout):
         super().__init__(host, timeout=timeout, context=ssl.create_default_context())
@@ -117,3 +137,4 @@ def search_web(query):
         return urls
     except (httpx.HTTPError, ValueError, KeyError) as exc:
         raise RetrievalError('Search service failed.') from exc
+

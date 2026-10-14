@@ -6,11 +6,11 @@ FRIDAY is Adithya's private product, with owner access and separately approved t
 |---|---|---|
 | Owner sign-in, individual invitations/revocation | Implemented; prior access API tests passed | Production HTTPS, recovery, multi-device validation |
 | Persistent chat, streaming adapter, bounded context | Implemented; mocked stream and persistence tests | Real authenticated provider conversation and reopen |
-| Separate durable research worker | Implemented; SQLite recovery/retry/cancellation tests | Real search + cited synthesis with frontend closed; PostgreSQL/Celery run |
-| Sources, activity, reports | Implemented; retrieval guards and report checks tested with fixtures; earlier public-page fetch recorded | Live project accuracy review; snippets are not inspected full sources |
+| Separate durable research worker | Implemented; 72 backend tests and an isolated deployed-image supplied-URL/model run completed | Brave Search with live key; production PostgreSQL/Celery recovery and browser-close run |
+| Sources, activity, reports | Supplied public HTTPS page retrieved and cited report saved in disposable live-image test | Human accuracy review of the report and live owner workflow |
 | Command center and project dashboard | Implemented; updated fixture browser workflow and prior manual inspection | Live provider run and multi-device production validation |
 | Capability-aware provider boundary | Adapter capabilities declared; unknown adapter rejected | Future checkpoint adapter and per-model evaluation; no silent fallback |
-| Cloud execution while laptop is off | Planned deployment | Server deployed and laptop-off acceptance test |
+| Cloud execution while laptop is off | VPS deployed with API, worker and scheduler running | Laptop-off acceptance and failure recovery tests |
 | Browser voice input/playback | Implemented where browser supports it | Provider speech, interruption and cross-device verification remain |
 | Explicit user-controlled memory | Implemented and deployed | Local save/edit/delete/context tests pass; live owner page verified; live lifecycle not yet exercised |
 | Consequential action approvals | Planned | Material-parameter binding, expiry/replay/ownership tests; account invitations are not action approvals |
@@ -19,5 +19,5 @@ FRIDAY is Adithya's private product, with owner access and separately approved t
 | Training pipeline | Offline curation and experimental scripts implemented | Reviewed data, three-way family-separated splits, GPU smoke test, baseline, regressions, promotion |
 | Council, mobile and physical devices | Planned | Actual integrations; no fake pairing or simulated support |
 
-First live milestone remains BLOCKED by absent real model/search configuration. SQLite local evidence does not establish PostgreSQL deployment behavior. Reference products are capability references only, not dependencies.
+The configured model produced a live research report from a supplied public page. Brave web search is still unconfigured, and the disposable SQLite run does not establish production PostgreSQL/Celery recovery or report accuracy. Reference products are capability references only, not dependencies.
 

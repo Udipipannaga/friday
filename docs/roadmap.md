@@ -7,14 +7,14 @@ FRIDAY owns its product interface, user accounts, orchestration, durable state, 
 | Capability | Infrastructure and FRIDAY responsibility | Acceptance test | Status |
 |---|---|---|---|
 | Accounts | Argon2, database sessions, ownership and throttling | Register/login/logout; reject another user's resource IDs | Implemented; automated tests pass; no email verification/OAuth |
-| Text conversation | Configured model API; FRIDAY context, persistence, UI, job cancellation | Ask, close/reopen, restart storage, resume history | Implemented; fixture E2E tested; live model unconfigured |
-| Durable research | Brave Search, HTTPS pages, model synthesis; FRIDAY plan/checkpoints/sources/report | Start, close frontend, recover worker, inspect actual source-linked report | Implemented; fixture E2E + real-page retrieval tested; live search/model unconfigured |
+| Text conversation | Configured model API; FRIDAY context, persistence, UI, job cancellation | Ask, close/reopen, restart storage, resume history | Implemented; live owner reply saved, correctness unmeasured |
+| Durable research | Brave Search or supplied public HTTPS URLs, configured-model synthesis; FRIDAY plan/checkpoints/sources/report | Start, close frontend, recover worker, inspect actual source-linked report | Supplied-URL run completed in deployed image with disposable SQLite; live Brave search, PostgreSQL/Celery recovery and accuracy review outstanding |
 | Activity and usage | Database events, reservations, reported tokens, job limits | Observe steps; exceed quota; interrupted usage shown uncertain | Implemented/tested locally; exact monetary cap not provided |
 | Markdown artifacts | Database + authenticated download | Research report saved and retrievable only by owner | Implemented/tested; other artifact formats planned |
 | Cloud operation | PostgreSQL, Celery, Redis, Docker Compose, Caddy HTTPS | Start containers; verify public sign-in and private data services; test worker/broker failure and restore | VPS containers, health, owner-session isolation and conversation persistence smoke-tested; HTTPS page verified October 5; authenticated HTTPS browser flow, broker-failure and restore drills outstanding |
 | Physics calculation | FRIDAY's deterministic lift-versus-weight tool with bounded units | Signed-in request; reject bad units; compare force values and support decision | One narrow formula implemented and locally API-tested; no physics-trained model or real aerodynamic solver |
 
-**Gate before expansion:** the private HTTPS deployment exists, but model and search credentials are still absent. Validate an authenticated browser session on the HTTPS origin, then a real conversation and source-based research job; finish PostgreSQL/Celery recovery, backup/restore and cross-account checks on the VPS. Do not call AI workflows fully live-verified until those checks pass.
+**Gate before expansion:** private HTTPS, authenticated owner access, a saved live chat reply and an isolated supplied-URL research run are verified. Finish a live owner research browser flow, PostgreSQL/Celery recovery, backup/restore and cross-account checks on the VPS. Brave search needs a key. Do not call report accuracy or all AI workflows verified until those checks pass.
 
 ## Stage 2 — voice and user-controlled memory
 
@@ -56,5 +56,5 @@ Acceptance: switch clients without losing history/project state; revoke a paired
 
 ## Continuation reconciliation (2026-10-03)
 
-See [requirements-traceability.md](requirements-traceability.md) for all 330 tracked requirement blocks and [capabilities.md](capabilities.md) for current boundaries. Priority is unchanged: verify one real-provider persistent conversation and source-based durable research run before voice, memory, computer use or specialists. P1 live verification is blocked by credentials. Docker is absent on Windows, but the Hostinger VPS now runs the Compose stack and HTTPS entry point; the failure/recovery portion of P2 remains. Track B prepares provenance and family-separated datasets only; no paid collection or fine-tuning. The small physics fixture holdout is not a model benchmark; see [physics-learning.md](physics-learning.md).
+See [requirements-traceability.md](requirements-traceability.md) for all 330 tracked requirement blocks and [capabilities.md](capabilities.md) for current boundaries. The configured model and a supplied public page have completed an isolated research run in the deployed image; production owner-flow and recovery acceptance remain. Docker is absent on Windows, but the Hostinger VPS runs the Compose stack and HTTPS entry point. Track B prepares provenance and family-separated datasets only; no paid collection or fine-tuning. The small physics fixture holdout is not a model benchmark; see [physics-learning.md](physics-learning.md).
 

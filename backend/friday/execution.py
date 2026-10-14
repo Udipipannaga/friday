@@ -110,9 +110,16 @@ def run_job(job_id, provider=None, search=None, fetch=None):
                 state = dict(job.checkpoint)
             if stage == 'plan':
                 def plan(s, j):
-                    j.stage = 'model' if kind == 'chat' else 'search'
-                    j.checkpoint = {'plan': ['Search up to 5 public sources', 'Retrieve and record page evidence', 'Compare evidence and save a cited report']}
-                    event(s, j, 'Conversation queued for model.' if kind == 'chat' else 'Bounded research plan saved: search, retrieve, compare, report.')
+                    supplied = j.checkpoint.get('source_urls', []) if kind == 'research' else []
+                    j.stage = 'model' if kind == 'chat' else ('fetch' if supplied else 'search')
+                    j.checkpoint = {**j.checkpoint,
+                        'plan': [
+                            'Use up to 5 supplied public HTTPS sources' if supplied else 'Search up to 5 public sources',
+                            'Retrieve and record page evidence', 'Compare evidence and save a cited report'],
+                        **({'urls': supplied} if supplied else {})}
+                    event(s, j, 'Conversation queued for model.' if kind == 'chat' else
+                        ('Bounded research plan saved: supplied sources, retrieve, compare, report.' if supplied
+                         else 'Bounded research plan saved: search, retrieve, compare, report.'))
                 checkpoint(job_id, token, plan)
             elif stage == 'search':
                 urls = search(goal)
