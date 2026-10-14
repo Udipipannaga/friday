@@ -1,0 +1,31 @@
+{
+  "gateway": {
+    "mode": "local",
+    "bind": "lan",
+    "port": 18789,
+    "auth": { "mode": "token" },
+    "http": { "endpoints": { "chatCompletions": { "enabled": true } } },
+    "controlUi": { "enabled": false },
+    "terminal": { "enabled": false }
+  },
+  "models": {
+    "providers": {
+      "ollama": {
+        "baseUrl": "http://ollama:11434",
+        "apiKey": "ollama-local",
+        "api": "ollama",
+        "timeoutSeconds": 300,
+        "models": [
+          { "id": "qwen2.5:1.5b", "name": "qwen2.5:1.5b", "input": ["text"], "contextTokens": 16384, "params": { "num_ctx": 16384 } }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": { "model": { "primary": "ollama/qwen2.5:1.5b" } }
+  },
+  "cron": { "enabled": false },
+  "plugins": { "allow": ["ollama"], "entries": { "memory-core": { "enabled": false } } },
+  "tools": { "deny": ["*"], "toolSearch": false }
+}
+

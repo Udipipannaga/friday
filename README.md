@@ -8,7 +8,7 @@ The [interactive interface](docs/interface.md) includes Higgsfield-generated orb
 
 The hosted private instance is at [https://frieday.tech](https://frieday.tech). `www.frieday.tech` and the former Hostinger hostname redirect there. New visitors can request access; only the owner can approve and issue invitations. Public self-registration is closed. The GitHub repository holds source and reviewed deployment files; the running database and secrets stay on the VPS. See [deployment status](docs/deployment.md).
 
-**OpenClaw-class agent direction:** an optional private Gateway adapter is implemented in source but not configured or active on the hosted instance. The [parity ledger](docs/openclaw-parity.md) tracks what FRIDAY can actually do and the acceptance tests still required for tools, channels, browser, coding and devices. A temporary isolated Gateway passed a startup health check; no live agent reply through it has been tested.
+**OpenClaw-class agent direction:** an optional private Gateway adapter is implemented in source but not configured or active on the hosted instance. The [parity ledger](docs/openclaw-parity.md) tracks what FRIDAY can actually do and the acceptance tests still required for tools, channels, browser, coding and devices. A temporary isolated Gateway and FRIDAY's adapter completed one live text reply using the configured local model; approval-controlled tools and team isolation remain untested.
 
 ## Start on Windows
 
