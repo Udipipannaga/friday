@@ -3,9 +3,11 @@ import re
 import time
 from urllib.parse import urlparse
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from . import db
 
 TOOLS = frozenset({'match', 'draft_outreach', 'chase_silent', 'draft_invoice', 'weekly_note'})
+WEEK = 7 * 86400
 CARD_LIKE = re.compile(r'(?:\d[ -]?){13,19}')
 
 
@@ -92,3 +94,38 @@ def draft(s, company: db.OperatingCompany, tool: str, person: db.OperatingPerson
                 f'channel {company.channel}; money rules {company.money_rules}. Demand-side acquisition: UNKNOWN.',
                 {'customer_visible': False})
     raise DraftBlocked('This company needs owner-supplied operating rules before that draft tool can run.')
+
+
+def run_due_weekly_notes(now: float | None = None, model_ready: bool = False) -> int:
+    """Save owner-review drafts only. A locked due row and unique key fence repeat runs."""
+    if not model_ready:
+        return 0
+    now = time.time() if now is None else now
+    completed = 0
+    with db.Session() as s:
+        due = list(s.scalars(select(db.OperatingSchedule).where(
+            db.OperatingSchedule.enabled.is_(True), db.OperatingSchedule.tool == 'weekly_note',
+            db.OperatingSchedule.next_run <= now).with_for_update(skip_locked=True)))
+        for schedule in due:
+            company = s.get(db.OperatingCompany, schedule.company_id)
+            if company is None:
+                continue
+            due_at = schedule.next_run
+            key = f'scheduled-weekly:{schedule.id}:{int(due_at)}'
+            existing = s.scalar(select(db.OperatingDraft.id).where(
+                db.OperatingDraft.company_id == company.id, db.OperatingDraft.request_key == key))
+            if not existing:
+                output, result = draft(s, company, 'weekly_note', None, None, now=now)
+                s.add(db.OperatingDraft(company_id=company.id, tool='weekly_note', request_key=key,
+                    request={'scheduled': True, 'due_at': due_at},
+                    result={**result, 'generation': 'validated_template', 'model_called': False,
+                        'scheduled': True}, draft=output))
+            schedule.last_run = now
+            schedule.next_run = now + WEEK
+            try:
+                s.commit()
+                completed += 1
+            except IntegrityError:
+                s.rollback()
+    return completed
+

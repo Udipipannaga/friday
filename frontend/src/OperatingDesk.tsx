@@ -6,7 +6,8 @@ type Person = {id:string; role:string; name:string; published_video_title:string
   open_loop:string; last_contact_at:number|null; joined_at:number|null; join_evidence:string; opted_out:boolean; paid_on_time:string};
 type Job = {id:string; title:string; creator_id:string; brief:string; sample_fee:string; created:number};
 type Draft = {id:string; tool:string; draft:string; status:string; created:number; result:{model_called?:boolean}};
-type Desk = {company:Company; people:Person[]; jobs:Job[]; drafts:Draft[]};
+type Desk = {company:Company; people:Person[]; jobs:Job[]; drafts:Draft[];
+  weekly_schedule:{tool:'weekly_note'; enabled:boolean; next_run:number|null; last_run:number|null}};
 type Tool = 'match'|'draft_outreach'|'chase_silent'|'draft_invoice'|'weekly_note';
 
 async function api<T>(path:string, method='GET', body?:unknown):Promise<T> {
@@ -115,9 +116,17 @@ export function OperatingDesk() {
           <button disabled={busy}>Create owner-review draft</button>
         </form>
       </article>
+      <article className="desk-card"><h2>Weekly note automation</h2>
+        <p className="small muted">When enabled, FRIDAY creates a private weekly-note draft now and every seven days. It stays in your draft log for review; no message or payment is sent. A configured model is required by the operating-desk gate, but the note itself uses a validated template.</p>
+        <p>{desk.weekly_schedule.enabled ? 'Enabled' : 'Off'}{desk.weekly_schedule.next_run ? ` · Next check: ${new Date(desk.weekly_schedule.next_run*1000).toLocaleString()}` : ''}</p>
+        {desk.weekly_schedule.last_run && <p className="small muted">Last draft: {new Date(desk.weekly_schedule.last_run*1000).toLocaleString()}</p>}
+        <button disabled={busy} onClick={()=>void act(async()=>{await api(`/companies/${companyId}/weekly-schedule`,'POST',
+          {enabled:!desk.weekly_schedule.enabled});await refresh(companyId);})}>{desk.weekly_schedule.enabled?'Turn off weekly notes':'Enable weekly notes'}</button>
+      </article>
       <article className="desk-card"><h2>Draft log</h2><p className="small muted">Request, tool result and draft are saved. Every customer-visible item stays pending your review. There is no send or pay action.</p>
         <div className="desk-list">{desk.drafts.length===0?<p className="muted">No draft runs yet.</p>:desk.drafts.map(d=><div key={d.id}><small>{new Date(d.created*1000).toLocaleString()} · {d.tool} · {d.status}</small><p>{d.draft}</p><small>Validated template · model called: {String(d.result.model_called)}</small></div>)}</div>
       </article>
     </>}
   </section>;
 }
+

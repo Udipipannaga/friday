@@ -569,6 +569,11 @@ class ToolInput(BaseModel):
     job_id: str | None = None
 
 
+class ScheduleInput(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    enabled: bool
+
+
 def company_view(row):
     return {field: getattr(row, field) for field in ('id', 'name', 'offer', 'audience', 'channel', 'money_rules', 'created')}
 
@@ -587,6 +592,12 @@ def job_operating_view(row):
 def draft_view(row):
     return {field: getattr(row, field) for field in ('id', 'company_id', 'person_id', 'job_id', 'tool',
         'request_key', 'request', 'result', 'draft', 'status', 'created')}
+
+
+def schedule_view(row):
+    return {'tool': 'weekly_note', 'enabled': bool(row and row.enabled),
+        'next_run': row.next_run if row and row.enabled else None,
+        'last_run': row.last_run if row else None}
 
 
 def operating_company(s, company_id, user):
@@ -661,8 +672,27 @@ def operating_desk(company_id: str, user: User, s: DB):
     people = list(s.scalars(select(db.OperatingPerson).where(db.OperatingPerson.company_id == row.id).order_by(db.OperatingPerson.created)))
     jobs = list(s.scalars(select(db.OperatingJob).where(db.OperatingJob.company_id == row.id).order_by(db.OperatingJob.created.desc())))
     drafts = list(s.scalars(select(db.OperatingDraft).where(db.OperatingDraft.company_id == row.id).order_by(db.OperatingDraft.created.desc()).limit(100)))
+    schedule = s.scalar(select(db.OperatingSchedule).where(
+        db.OperatingSchedule.company_id == row.id, db.OperatingSchedule.tool == 'weekly_note'))
     return {'company': company_view(row), 'people': [person_view(p) for p in people],
-        'jobs': [job_operating_view(j) for j in jobs], 'drafts': [draft_view(d) for d in drafts]}
+        'jobs': [job_operating_view(j) for j in jobs], 'drafts': [draft_view(d) for d in drafts],
+        'weekly_schedule': schedule_view(schedule)}
+
+
+@app.post('/api/operating/companies/{company_id}/weekly-schedule')
+def operating_weekly_schedule(company_id: str, body: ScheduleInput, user: User, s: DB):
+    company = operating_company(s, company_id, user)
+    row = s.scalar(select(db.OperatingSchedule).where(
+        db.OperatingSchedule.company_id == company.id, db.OperatingSchedule.tool == 'weekly_note'))
+    if row is None:
+        row = db.OperatingSchedule(company_id=company.id, tool='weekly_note', enabled=False,
+            next_run=0)
+        s.add(row)
+    if body.enabled and not row.enabled:
+        row.next_run = time.time()
+    row.enabled = body.enabled
+    s.commit()
+    return schedule_view(row)
 
 
 @app.post('/api/operating/companies/{company_id}/people', status_code=201)

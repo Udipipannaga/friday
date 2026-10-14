@@ -15,7 +15,8 @@ FRIDAY is Adithya's private product, with owner access and separately approved t
 | Explicit user-controlled memory | Implemented and deployed | Local save/edit/delete/context tests pass; live owner page verified; live lifecycle not yet exercised |
 | Consequential action approvals | Planned | Material-parameter binding, expiry/replay/ownership tests; account invitations are not action approvals |
 | Browser/computer tools and isolated coding | Planned | Hardened worker isolation, actual actions and verification |
-| Bots, scheduling, integrations and artifacts beyond Markdown research | Planned | Functional bounded runtime and end-to-end tests |
+| Scheduled company-note drafts | Owner-enabled seven-day schedule implemented; worker run and deduplication tested locally and in deployed image | Live owner toggle, week-long recurrence, worker failure recovery |
+| Bots, general scheduling, integrations and artifacts beyond Markdown research | Planned | Functional bounded runtime and end-to-end tests |
 | Training pipeline | Offline curation and experimental scripts implemented | Reviewed data, three-way family-separated splits, GPU smoke test, baseline, regressions, promotion |
 | Council, mobile and physical devices | Planned | Actual integrations; no fake pairing or simulated support |
 

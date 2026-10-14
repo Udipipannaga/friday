@@ -196,6 +196,18 @@ class OperatingDraft(Base):
     created: Mapped[float] = mapped_column(Float, default=time.time)
 
 
+class OperatingSchedule(Base):
+    __tablename__ = 'operating_schedules'
+    __table_args__ = (UniqueConstraint('company_id', 'tool'),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    company_id: Mapped[str] = mapped_column(ForeignKey('operating_companies.id'), index=True)
+    tool: Mapped[str] = mapped_column(String(40))
+    enabled: Mapped[bool] = mapped_column(default=False)
+    next_run: Mapped[float] = mapped_column(Float, default=0)
+    last_run: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created: Mapped[float] = mapped_column(Float, default=time.time)
+
+
 class StudyReview(Base):
     __tablename__ = 'study_reviews'
     __table_args__ = (UniqueConstraint('run_id', 'case_id', 'user_id'),)
