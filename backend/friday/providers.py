@@ -30,9 +30,25 @@ class Capabilities:
 
 def provider_capabilities(name: str) -> Capabilities:
     """Adapter capabilities, not untested claims about a selected model."""
-    if name not in ('openai', 'ollama'):
+    if name not in ('openai', 'ollama', 'openclaw'):
         raise ProviderError('The selected provider has no installed adapter.')
-    return Capabilities()
+    return Capabilities(streaming=False) if name == 'openclaw' else Capabilities()
+
+
+def configuration_missing() -> list[str]:
+    missing = []
+    if not settings.model:
+        missing.append('FRIDAY_MODEL')
+    if settings.provider == 'openai' and not settings.api_key:
+        missing.append('FRIDAY_API_KEY')
+    if settings.provider == 'openclaw':
+        if not settings.openclaw_token:
+            missing.append('FRIDAY_OPENCLAW_TOKEN')
+        if not settings.model or '/' not in settings.model:
+            missing.append('FRIDAY_MODEL (provider/model)')
+    if settings.provider not in ('openai', 'ollama', 'openclaw'):
+        missing.append('FRIDAY_PROVIDER adapter')
+    return missing
 
 
 class ModelProvider(Protocol):
@@ -130,7 +146,54 @@ class OllamaProvider:
         raise ProviderError('Local model stream ended without a final response.')
 
 
+class OpenClawProvider:
+    """Use a private, policy-restricted OpenClaw Gateway as an agent runtime.
+
+    FRIDAY still owns authentication, chat history and the selected underlying model.
+    Gateway tool permissions must be restricted separately before this mode is enabled.
+    """
+    capabilities = Capabilities(streaming=False)
+
+    def complete(self, messages, on_text):
+        parsed = urlparse(settings.openclaw_url)
+        if (parsed.scheme != 'http' or parsed.hostname not in ('openclaw', 'localhost', '127.0.0.1')
+                or parsed.username or parsed.password or parsed.path not in ('', '/')
+                or parsed.query or parsed.fragment):
+            raise ProviderError('OpenClaw Gateway must be a private local service.')
+        if not settings.openclaw_token or not settings.model or '/' not in settings.model:
+            raise ProviderError('Configure a Gateway token and a provider/model in FRIDAY Settings.')
+        if not messages or any(m.get('role') not in ('system', 'user', 'assistant')
+                               or not isinstance(m.get('content'), str) for m in messages):
+            raise ProviderError('Invalid conversation sent to the agent runtime.')
+        try:
+            with httpx.Client(timeout=httpx.Timeout(180, connect=5), trust_env=False) as client:
+                response = client.post(settings.openclaw_url.rstrip('/') + '/v1/chat/completions',
+                    headers={'Authorization': f'Bearer {settings.openclaw_token}',
+                             'x-openclaw-model': settings.model},
+                    json={'model': 'openclaw/default', 'messages': messages,
+                          'stream': False, 'max_completion_tokens': settings.max_output_tokens})
+            if response.status_code != 200:
+                raise ProviderError(f'Private agent runtime returned HTTP {response.status_code}.')
+            data = response.json()
+            choice = data['choices'][0]
+            message = choice['message']
+            if choice.get('finish_reason') != 'stop' or message.get('tool_calls'):
+                raise ProviderError('Agent runtime did not return a completed text answer.')
+            output = message.get('content')
+            if not isinstance(output, str) or not output.strip() or len(output) > 80000:
+                raise ProviderError('Agent runtime returned invalid or empty text.')
+            usage = data.get('usage') or {}
+            on_text(output)
+            return Result(output, usage.get('prompt_tokens'), usage.get('completion_tokens'))
+        except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
+            raise ProviderError('Private agent runtime failed or returned invalid data.') from exc
+
+
 def get_provider() -> ModelProvider:
     provider_capabilities(settings.provider)
-    return OpenAIProvider() if settings.provider == 'openai' else OllamaProvider()
+    if settings.provider == 'openai':
+        return OpenAIProvider()
+    if settings.provider == 'openclaw':
+        return OpenClawProvider()
+    return OllamaProvider()
 

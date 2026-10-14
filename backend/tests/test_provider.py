@@ -80,3 +80,46 @@ def test_ollama_rejects_external_endpoint_and_sanitizes_errors(monkeypatch):
         providers.OllamaProvider().complete([], lambda text: None)
     assert '404' in str(exc.value) and 'private model details' not in str(exc.value)
 
+
+def test_private_openclaw_adapter_uses_selected_model_and_completed_text(monkeypatch, client):
+    original = httpx.Client
+    monkeypatch.setattr(providers.settings, 'provider', 'openclaw')
+    monkeypatch.setattr(providers.settings, 'model', 'ollama/qwen2.5:1.5b')
+    monkeypatch.setattr(providers.settings, 'openclaw_token', 'fixture-secret')
+    monkeypatch.setattr(providers.settings, 'openclaw_url', 'http://openclaw:18789')
+    def handler(request):
+        assert str(request.url) == 'http://openclaw:18789/v1/chat/completions'
+        assert request.headers['authorization'] == 'Bearer fixture-secret'
+        assert request.headers['x-openclaw-model'] == 'ollama/qwen2.5:1.5b'
+        body = json.loads(request.content)
+        assert body['model'] == 'openclaw/default' and body['stream'] is False
+        return httpx.Response(200, json={'choices': [{'finish_reason': 'stop',
+            'message': {'content': 'Private agent reply.'}}],
+            'usage': {'prompt_tokens': 8, 'completion_tokens': 4}})
+    monkeypatch.setattr(httpx, 'Client', lambda **kwargs: original(transport=httpx.MockTransport(handler)))
+    chunks = []
+    result = providers.get_provider().complete([{'role': 'user', 'content': 'hello'}], chunks.append)
+    assert result.text == 'Private agent reply.' and chunks == ['Private agent reply.']
+    assert (result.input_tokens, result.output_tokens) == (8, 4)
+    status = client.get('/api/status').json()
+    assert status['chat_configured'] and status['adapter_capabilities']['streaming'] is False
+    assert status['adapter_capabilities']['tools'] is False
+
+
+def test_openclaw_adapter_fails_closed_on_configuration_and_tool_calls(monkeypatch):
+    monkeypatch.setattr(providers.settings, 'provider', 'openclaw')
+    monkeypatch.setattr(providers.settings, 'model', 'ollama/qwen2.5:1.5b')
+    monkeypatch.setattr(providers.settings, 'openclaw_token', 'fixture-secret')
+    monkeypatch.setattr(providers.settings, 'openclaw_url', 'https://example.com')
+    with pytest.raises(providers.ProviderError, match='private local'):
+        providers.get_provider().complete([{'role': 'user', 'content': 'hello'}], lambda _: None)
+    monkeypatch.setattr(providers.settings, 'openclaw_url', 'http://openclaw:18789')
+    original = httpx.Client
+    monkeypatch.setattr(httpx, 'Client', lambda **kwargs: original(transport=httpx.MockTransport(
+        lambda _: httpx.Response(200, json={'choices': [{'finish_reason': 'tool_calls',
+            'message': {'content': '', 'tool_calls': [{'function': {'name': 'send'}}]}}]}))))
+    with pytest.raises(providers.ProviderError, match='completed text'):
+        providers.get_provider().complete([{'role': 'user', 'content': 'hello'}], lambda _: None)
+    monkeypatch.setattr(providers.settings, 'openclaw_token', '')
+    assert 'FRIDAY_OPENCLAW_TOKEN' in providers.configuration_missing()
+

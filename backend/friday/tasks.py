@@ -2,6 +2,7 @@ from celery import Celery
 from .config import settings
 from .execution import pending_ids, run_job
 from .operating import run_due_weekly_notes
+from . import providers
 
 app = Celery('friday', broker=settings.redis_url)
 app.conf.update(task_acks_late=True, task_reject_on_worker_lost=True,
@@ -27,7 +28,6 @@ def execute(job_id):
 
 @app.task(name='friday.weekly-notes')
 def weekly_notes():
-    model_ready = bool(settings.model and settings.provider in ('ollama', 'openai') and
-        (settings.provider != 'openai' or settings.api_key))
+    model_ready = not providers.configuration_missing()
     return run_due_weekly_notes(model_ready=model_ready)
 

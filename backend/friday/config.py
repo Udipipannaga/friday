@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     model: str = ''
     api_key: str = ''
     ollama_url: str = 'http://ollama:11434'
+    openclaw_url: str = 'http://openclaw:18789'
+    openclaw_token: str = ''
     search_key: str = ''
     daily_jobs: int = 30
     max_active_jobs: int = 3
@@ -25,3 +27,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+

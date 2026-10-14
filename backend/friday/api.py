@@ -271,8 +271,7 @@ def health(s: DB):
 
 @app.get('/api/status')
 def status(user: User):
-    configured = bool(settings.model and (settings.provider == 'ollama' or
-        (settings.provider == 'openai' and settings.api_key)))
+    configured = not providers.configuration_missing()
     try:
         adapter_capabilities = asdict(providers.provider_capabilities(settings.provider))
     except providers.ProviderError:
@@ -281,11 +280,11 @@ def status(user: User):
         'source_research_configured': configured,
         'adapter_capabilities': adapter_capabilities, 'model_evaluation': 'not evaluated',
         'provider': settings.provider, 'model': settings.model or 'Not configured',
-        'missing': ([name for name, present in [('FRIDAY_MODEL', settings.model), ('FRIDAY_SEARCH_KEY', settings.search_key)] if not present]
-            + (['FRIDAY_API_KEY'] if settings.provider == 'openai' and not settings.api_key else [])),
+        'missing': providers.configuration_missing() + (['FRIDAY_SEARCH_KEY'] if not settings.search_key else []),
         'capabilities': {'persistent_chat': 'implemented', 'research': 'implemented; supplied-URL mode needs a model, web search also needs FRIDAY_SEARCH_KEY',
             'physics_lift_checker': 'implemented; deterministic narrow calculator, not a trained model',
             'voice': 'browser TTS available; dictation depends on browser speech recognition',
+            'openclaw_gateway': 'adapter installed; live agent and tool policies not yet verified',
             'operating_desks': 'implemented; owner-only, record-backed templates; no send or payment',
             'memory': 'explicit user-controlled memories implemented for later chats; automatic extraction planned', 'computer_use': 'planned', 'coding_sandbox': 'planned',
             'business_integrations': 'planned', 'mobile_apps': 'planned', 'device_pairing': 'planned'}}
@@ -398,12 +397,10 @@ def submit_job(s, user, body, kind, conversation_id=None):
         return job_view(existing)
     if not body.text.strip():
         raise HTTPException(422, 'Enter a request.')
-    if settings.provider not in ('openai', 'ollama'):
-        raise HTTPException(503, 'The selected FRIDAY_PROVIDER has no installed adapter. No AI response has been simulated.')
-    if not settings.model:
-        raise HTTPException(503, 'Configure FRIDAY_MODEL on the server. No AI response has been simulated.')
-    if settings.provider == 'openai' and not settings.api_key:
-        raise HTTPException(503, 'Configure FRIDAY_API_KEY on the server. No AI response has been simulated.')
+    missing_provider_settings = providers.configuration_missing()
+    if missing_provider_settings:
+        raise HTTPException(503, 'Configure ' + ', '.join(missing_provider_settings)
+                            + ' on the server. No AI response has been simulated.')
     if kind == 'research' and not settings.search_key and not source_urls:
         raise HTTPException(503, 'Add public HTTPS source URLs or configure FRIDAY_SEARCH_KEY on the server.')
     day = int(time.time() // 86400)
@@ -761,7 +758,7 @@ def operating_tool(company_id: str, tool: str, body: ToolInput, user: User, s: D
     company = operating_company(s, company_id, user)
     if tool not in operating.TOOLS:
         raise HTTPException(404, 'Unknown draft-only tool.')
-    if not settings.model or settings.provider not in ('ollama', 'openai') or (settings.provider == 'openai' and not settings.api_key):
+    if providers.configuration_missing():
         return {'status': 'NOT_RUN'}
     request = body.model_dump()
     existing = s.scalar(select(db.OperatingDraft).where(db.OperatingDraft.company_id == company_id,
