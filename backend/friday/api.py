@@ -284,7 +284,7 @@ def status(user: User):
         'capabilities': {'persistent_chat': 'implemented', 'research': 'implemented; supplied-URL mode needs a model, web search also needs FRIDAY_SEARCH_KEY',
             'physics_lift_checker': 'implemented; deterministic narrow calculator, not a trained model',
             'voice': 'browser TTS available; dictation depends on browser speech recognition',
-            'openclaw_gateway': 'adapter installed; live agent and tool policies not yet verified',
+            'openclaw_gateway': 'one isolated text reply tested; production integration and approval-controlled tools not configured',
             'operating_desks': 'implemented; owner-only, record-backed templates; no send or payment',
             'memory': 'explicit user-controlled memories implemented for later chats; automatic extraction planned', 'computer_use': 'planned', 'coding_sandbox': 'planned',
             'business_integrations': 'planned', 'mobile_apps': 'planned', 'device_pairing': 'planned'}}
